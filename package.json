@@ -1,0 +1,15 @@
+{
+  "name": "node-js-example",
+  "version": "0.0.0",
+  "description": "",
+  "main": "example.js",
+  "dependencies": {
+    "ws": "~0.4.31"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
