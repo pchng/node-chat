@@ -1,7 +1,11 @@
 // Application.
 (function(application, $, undefined) {
 
-  var WEBSOCKET_ADDRESS = "ws://localhost:8088/";
+  console.log(window.config);
+  var config = window.config;
+
+  // TODO: PC: Verify configuration present!
+
   var formSelector = "#input";
   var inputSelector = "#message";
   var outputSelector = "#output";
@@ -16,7 +20,7 @@
   // - Client supplies list of valid sub-protcols and server responds with which one it has chosen.
   function setupWebSocketConnection() {
     if (window.WebSocket) {
-      socket = new WebSocket(WEBSOCKET_ADDRESS);
+      socket = new WebSocket(config.WEBSOCKET_ADDRESS);
       socket.onopen = outputTextMessage;
       socket.onmessage = outputTextMessage;
       socket.onclose = outputTextMessage;
