@@ -5,8 +5,8 @@ http.createServer(function (req, res) {
 }).listen(1337, '127.0.0.1');
 console.log('Server running at http://127.0.0.1:1337/');
 
-var WebSocketServer = require('ws').Server
-  , wss = new WebSocketServer({port: 8080});
+var WebSocketServer = require('ws').Server,
+  wss = new WebSocketServer({port: 8080});
 wss.on('connection', function(ws) {
     ws.on('message', function(message) {
         console.log('received: %s', message);

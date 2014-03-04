@@ -1,7 +1,6 @@
 // Application.
 (function(application, $, undefined) {
 
-  console.log(window.config);
   var config = window.config;
 
   // TODO: PC: Verify configuration present!
@@ -14,37 +13,55 @@
   
   function init() {
     setupWebSocketConnection();
+    attachEventHandlers();
   }
   
   // TODO: PC: How to use Sec-WebSocket-Protocol during handshake?
   // - Client supplies list of valid sub-protcols and server responds with which one it has chosen.
-  function setupWebSocketConnection() {
+  function setupWebSocketConnection(message) {
     if (window.WebSocket) {
       socket = new WebSocket(config.WEBSOCKET_ADDRESS);
-      socket.onopen = outputTextMessage;
+      socket.onopen = function(event) {
+        if (message) {
+          // TODO: PC: Beware of recursive loops!
+          sendTextMessage(message);
+        }
+      };
       socket.onmessage = outputTextMessage;
       socket.onclose = outputTextMessage;
       
-      // UI event handlers.
-      $(formSelector).submit(function(e) {
-        e.preventDefault();
-        var message = $(inputSelector).val();
-        
-        if (message) {
-          sendTextMessage(message);
-        }
-      });
+
       
     } else {
       window.alert("WebSocket is not supported in your browser.");
     }
   }
+
+  function attachEventHandlers() {
+    // UI event handlers.
+    $(formSelector).submit(function(e) {
+      e.preventDefault();
+      var message = $(inputSelector).val();
+      
+      if (message) {
+        sendTextMessage(message);
+      }
+    });   
+  }
   
   function sendTextMessage(message) {
-    if (socket && socket.readyState == WebSocket.OPEN) {
-      socket.send(message);
+    if (socket) {
+      if (socket.readyState == WebSocket.OPEN) {
+        socket.send(message);        
+      } else if (socket.readyState == WebSocket.CLOSED) {
+        // Attempt to reconnect.
+        console.log("WebSocket reconnecting...");
+        setupWebSocketConnection(message);
+      }
+      // TODO: PC: What about other readyState values? Queue up message and resend onopen?
+      // - Maybe this should be the default behaviour.
     } else {
-      console.error("WebSocket is not open.");
+      console.error("WebSocket is not supported in your browser.");
     }
   }
   
