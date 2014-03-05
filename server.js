@@ -10,8 +10,9 @@ var WebSocketServer = require('ws').Server,
 wss.on('connection', function(ws) {
     ws.on('message', function(message) {
         console.log('received: %s', message);
-        ws.send("From server: " + message);
+        ws.send("I hear an echo: " + message);
     });
+    // TODO: PC: Retry for sending to client?
     console.log("Received connection: " + ws);
 });
 console.log('WebSocket server running on port 8080');
