@@ -16,7 +16,12 @@
   var socket;
   var retryQueue = [];
   var retryPendingId;
+
+  // How often to retry when they are failed messages.
   var SIMPLE_RETRY_INTERVAL = 5000;
+  // When checking the retry queue, this is the maximum number of messages that will be processed.
+  // Set to 0 for no limit.
+  var RETRY_BATCH_SIZE = 5;
   
   function init() {
     setupWebSocketConnection();
@@ -85,41 +90,32 @@
     }
 
     if (socket.readyState != WebSocket.OPEN) {
-      retryQueue.push(message);
-      console.log("Socket status was %s. Putting message on retry queue. Queue size: %s", socket.readyState, retryQueue.length);
+      putMessageIntoRetry(message);
+      return;
+    }
 
-      // NOTE: This behaviour triggers a retry immediately (typically on user action) and the 
-      // periodic retry action will only take place in the absence of this trigger.
-      // NOTE: No need to clear retryPendingId if doing this!
+    socket.send(message);
+  }
 
-      // TODO: PC: Fix this. Seems to cause too many setTimeout events to queue up if
-      // sending triggered too fast. Race condition?
-      // 1) Timeout is set and then another timeout is set.
-      // 2) Clear timeout fires, but only clears the SECOND timeout; the first remains in play.
-      // - Only most recent stored.
-      // 3) Multiple setTimeout() calls but only one clearTimeout() call so many remain in play...
-      // 4) May need an array - add pendingId to array, clear all when clearing timeout.
-      // - Maybe we SHOULD wait for the next retry period? Make this configurable by putting
-      // this code into a function that accepts a boolean parameter, tryImmediately.
-      if (!retryPendingId) {
-        // NOTE: This works.
-        // window.clearTimeout(retryPendingId);
-        retryPendingId = window.setTimeout(checkRetryQueue, 100);
-      }
-    } else {
-      socket.send(message);
+  function putMessageIntoRetry(message) {
+    retryQueue.push(message);
+    console.log(
+      "Socket status was %s. Putting message on retry queue. Queue size: %s", 
+      socket.readyState, retryQueue.length
+    );
+
+    // No need to immediately check the retryQueue if a check is pending or the retryQueue is 
+    // currently being processed.
+    if (!retryPendingId) {
+      retryPendingId = window.setTimeout(checkRetryQueue, 0);
     }
   }
 
   // TODO: PC: How many messages to try at a time? Batch size? Stop after failure if batch?
   function checkRetryQueue() {
-    // NOTE: When this function is invoked from a JS Timer, it will BLOCK until it has 
-    // completed execution, just as if was called normally. (Single-threaded)
 
-    // TODO: PC: Because the execution of this function blocks, can probably clear
-    // retryPendingId here unconditionally.
+    console.debug("Checking retry queue (n=%s) at %s.", retryQueue.length, new Date());
 
-    console.debug("Checking retry queue at %s.", new Date());
     if (retryQueue.length <= 0) {
       console.debug("Retry queue was empty: Take no action.");
       // Clear the retry ID to indicate no pending retry actions.
@@ -134,12 +130,20 @@
     }
 
     function retryMessage() {
+      var numRetriesProcessed = 0;
       while (retryQueue.length > 0 && socket.readyState == WebSocket.OPEN) {
         // TODO: PC: May want to throttle the rate.
         var message = retryQueue.pop();
         console.debug("Retrying message: %s", message)
         sendTextMessage(message);
+
+        ++numRetriesProcessed;
+        if (RETRY_BATCH_SIZE > 0 && numRetriesProcessed >= RETRY_BATCH_SIZE) {
+          break;
+        }
       }
+
+      console.debug("Processed %s retries.", numRetriesProcessed);
 
       if (retryQueue.length > 0) {
         // Couldn't empty out the queue, so try again later.
