@@ -115,10 +115,10 @@
   // TODO: PC: How many messages to try at a time? Batch size? Stop after failure if batch?
   function checkRetryQueue() {
 
-    console.debug("Checking retry queue (n=%s) at %s.", retryQueue.length, new Date());
+    console.log("Checking retry queue (n=%s) at %s.", retryQueue.length, new Date());
 
     if (retryQueue.length <= 0) {
-      console.debug("Retry queue was empty: Take no action.");
+      console.log("Retry queue was empty: Take no action.");
       // Clear the retry ID to indicate no pending retry actions.
       retryPendingId = null;
       return;
@@ -135,7 +135,7 @@
       while (retryQueue.length > 0 && socket.readyState == WebSocket.OPEN) {
         // TODO: PC: May want to throttle the rate.
         var message = retryQueue.pop();
-        console.debug("Retrying message: %s", message)
+        console.log("Retrying message: %s", message)
         sendTextMessage(message);
 
         ++numRetriesProcessed;
@@ -144,7 +144,7 @@
         }
       }
 
-      console.debug("Processed %s retries.", numRetriesProcessed);
+      console.log("Processed %s retries.", numRetriesProcessed);
 
       if (retryQueue.length > 0) {
         // Couldn't empty out the queue, so try again later.

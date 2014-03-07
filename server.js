@@ -1,4 +1,5 @@
 var util = require('util');
+var _ = require('underscore');
 var WebSocketServer = require('ws').Server;
 
 // Namespacing pattern to create an extensible object based around closure from a 
@@ -7,53 +8,38 @@ var WebSocketServer = require('ws').Server;
 
   // The WebSocket server.
   var wss;
+
+  // Subprotocol definition.
   var WS_SUBPROTOCOL = "simple-chat.unitstep.net";
+  // TODO: PC: This is overly verbose and confusing. Simplify. Dubious whether this metadata is needed.
+  var FIELDS = {
+    COMMAND: "COMMAND",
+    USER_NAME: "USER_NAME",
+    MESSAGE: "MESSAGE",
+  }
+  var COMMANDS = {
+    LOGIN: "LOGIN",
+    MESSAGE_IN: "MESSAGE_IN", 
+    MESSAGE_OUT: "MESSAGE_OUT",
+  }
 
   // List of connected client WebSockets.
   var wsConnections = {};
-
-  // How often to check if clients are still connected.
-  var KEEP_ALIVE_INTERVAL = 5000;
   var keepAliveIntervalId;
-
-  var config
+  var config;
 
   application.startServer = function(conf) {
     config = conf;
     setupWebSocketServer();
-    keepAliveIntervalId = setInterval(keepAliveCheck, KEEP_ALIVE_INTERVAL);
+    console.info("Started WebSocket server on port %s.", config.port);
+    if (config.keepAlive && config.keepAliveInterval) {
+      console.info("Enabling keep-alive check every %s ms.", config.keepAliveInterval);
+      keepAliveIntervalId = setInterval(keepAliveCheck, config.keepAliveInterval);
+    }
   }
 
   application.stopServer = function() {
     // TODO: PC: Figure out how to do this.
-  }
-
-  // TODO: PC: Because of single-threading, if there are constantly messages coming in, 
-  // execution of this may be delayed. Anyway to ensure this always gets called periodically?
-  function keepAliveCheck() {
-    console.log("Checking all current connections. Count: %s", Object.keys(wsConnections).length);
-    for (var id in wsConnections) {
-      // TODO: PC: Could also check readyState, but use this blunt-method for now.
-      try {
-        wsConnections[id].ping();
-      } catch (e) {
-        // TODO: PC: This may not cover all cases. In the case where the PING is sent out,
-        // but a PONG is not received, the connection should be removed.
-        // How to accomplish this? Make sure this is robust.
-        delete wsConnections[id];
-        console.log("Removed connection with id %s because could not send out ping: %s", id, e);
-      }
-    }
-  }
-
-  function sendChatMessage(wsSender, message) {
-    for (var id in wsConnections) {
-      if (wsSender.id == id) {
-        continue;
-      }
-      // TODO: PC: Check readyState and/or remove connection if fails.
-      wsConnections[id].send(message);
-    }
   }
 
   function setupWebSocketServer() {
@@ -78,46 +64,132 @@ var WebSocketServer = require('ws').Server;
       handleProtocols: handleProtocols,
     });
 
-    console.log('WebSocket server running on port 8080');
-
-    wss.on("connection", function(ws) {
-
-      // TODO: PC: Check Origin header to prevent CSRF:
-      // http://learnitcorrect.com/blog/websocket-is-great-but-not-the-origin-policy.html
-
-      // Add the connection to the list and setup event handlers.
-      ws.id = new Date().getTime();
-      wsConnections[ws.id] = ws;
-
-      // console.log(util.inspect(ws, {depth: 1}));
-
-      console.log("Added WebSocket connection with id: %s", ws.id);
-      console.log("Number of connections: %s", Object.keys(wsConnections).length);
-
-      ws.on("message", function(message) {
-        console.log("Received message from id %s: %s", this.id, message);
-        sendChatMessage(this, message);
-      });
-
-      // TODO: PC: Check source to see what callback gets passed.
-      ws.on("close", function(event) {
-        delete wsConnections[this.id];
-        console.log("Closed connection for id: %s", this.id);
-      });
-
-      ws.on("pong", function(event) {
-        console.log("PONG received: %s", event);
-      });
-
-      // TODO: PC: Other ws event handlers?
-      // - Look for .emit() calls in WebSocket.js.
-
-    });
+    wss.on("connection", addWsConnection);
   }
+
+  function addWsConnection(ws) {
+    // TODO: PC: Check Origin header to prevent CSRF:
+    // http://learnitcorrect.com/blog/websocket-is-great-but-not-the-origin-policy.html
+
+    // Add the connection to the list and setup event handlers.
+    ws.chat = {
+      // TODO: PC: Probably not secure!
+      id:  new Date().getTime(),
+    };
+    wsConnections[ws.chat.id] = ws;
+
+    console.log("Added WebSocket connection with id: %s", ws.chat.id);
+    console.log("Number of connections: %s", Object.keys(wsConnections).length);
+
+    ws.on("message", function(message) {
+      dispatchInboundMessage(this, message);
+    });
+
+    ws.on("close", function(closeCode, closeMessage) {
+      var wsSender = this;
+      delete wsConnections[wsSender.chat.id];
+      console.log("Closed connection for id: %s", wsSender.chat.id);
+    });
+
+    ws.on("pong", function(event) {
+      console.log("PONG received: %s", event);
+    });
+
+    // TODO: PC: Other ws event handlers?
+    // - Look for .emit() calls in WebSocket.js.
+  }
+
+  function dispatchInboundMessage(wsSender, message) {
+    m = parseCommand(message);
+    if (!m || !m[FIELDS.COMMAND] || !_.contains(COMMANDS, m[FIELDS.COMMAND])) {
+      console.warn("Invalid message from id %s received: %s", wsSender.chat.id, message);
+      return;
+    }
+
+    // TODO: PC: Use an object name->function mapping here instead of this switch stuff.
+    switch (m[FIELDS.COMMAND]) {
+      case COMMANDS.LOGIN:
+        if (wsSender.chat.username) {
+          console.warn("Username already set for command: %s", message);
+          return;
+        }
+        wsSender.chat.username = m[FIELDS.USER_NAME];
+        console.log("Username for id %s set to %s", wsSender.chat.id, wsSender.chat.username);
+        break;
+      case COMMANDS.MESSAGE_IN:
+        if (!wsSender.chat.username) {
+          console.warn("Username not set for command: %s", message);
+          return;
+        }
+        if (m[FIELDS.MESSAGE]) {
+          var outMessage = {
+            COMMAND: COMMANDS.MESSAGE_OUT,
+            MESSAGE: m[FIELDS.MESSAGE],
+          }
+          dispatchOutboundMessage(outMessage);
+        }
+        break;
+      default:
+        console.warn("Invalid command from id %s: %s", wsSender.chat.id, m[FIELDS.COMMAND]);
+        break;
+    }
+    
+  }
+
+  function parseCommand(message) {
+    try {
+      return JSON.parse(message);
+    } catch(e) {
+      console.warn("Could not parse command: %s", message);
+      return false;
+    }
+  }
+
+  function dispatchOutboundMessage(message) {
+    switch (message[FIELDS.COMMAND]) {
+      case COMMANDS.MESSAGE_OUT:
+        sendChatMessage(message);
+        break;
+      default:
+        console.warn("Invalid command for outbound message: %s", message);
+        break;
+    }
+  }
+
+  // TODO: PC: Because of single-threading, if there are constantly messages coming in, 
+  // execution of this may be delayed. Anyway to ensure this always gets called periodically?
+  function keepAliveCheck() {
+    console.log("Checking all current connections. Count: %s", Object.keys(wsConnections).length);
+    for (var id in wsConnections) {
+      // TODO: PC: Could also check readyState, but use this blunt-method for now.
+      try {
+        wsConnections[id].ping();
+      } catch (e) {
+        // TODO: PC: This may not cover all cases. In the case where the PING is sent out,
+        // but a PONG is not received, the connection should be removed.
+        // How to accomplish this? Make sure this is robust.
+        delete wsConnections[id];
+        console.log("Removed connection with id %s because could not send out ping: %s", id, e);
+      }
+    }
+  }
+
+  function sendChatMessage(message) {
+    // Only one chat room, and everyone in it.
+    for (var id in wsConnections) {
+      // TODO: PC: Check readyState and/or remove connection if fails.
+      wsConnections[id].send(message);
+    }
+  }
+
+
+
 })(application = (typeof application !== "undefined" ? application : {}));
 
 // Start the server.
 var config = {
   port: 8080,
+  keepAlive: true,
+  keepAliveInterval: 5000,
 };
 application.startServer(config);

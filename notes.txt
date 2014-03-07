@@ -4,3 +4,7 @@ TODO:
 einaros/ws project: Submit a fix?
 https://github.com/einaros/ws/blob/master/lib/WebSocketServer.js
 - if (!result) abortConnection(socket, 404, 'Unauthorized')
+
+Chat:
+- Use Node http to serve up static page as client; see if can run on same port as WS.
+- Ajax endpoint to test if username is in use before login.
