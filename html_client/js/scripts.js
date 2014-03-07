@@ -14,6 +14,7 @@
   var closeSelector = "#close";
   
   var socket;
+  var WS_SUBPROTOCOL = "simple-chat.unitstep.net";
   var retryQueue = [];
   var retryPendingId;
 
@@ -38,7 +39,7 @@
       return;
     }
 
-    socket = new WebSocket(config.WEBSOCKET_ADDRESS);
+    socket = new WebSocket(config.WEBSOCKET_ADDRESS, WS_SUBPROTOCOL);
     socket.onopen = function(event) {
       console.log(event);
       if (successCallback) {

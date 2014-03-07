@@ -1,2 +1,6 @@
 TODO:
 - Use socket.io later. (Both client and server-side congruence)
+
+einaros/ws project: Submit a fix?
+https://github.com/einaros/ws/blob/master/lib/WebSocketServer.js
+- if (!result) abortConnection(socket, 404, 'Unauthorized')
