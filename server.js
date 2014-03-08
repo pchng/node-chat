@@ -1,4 +1,6 @@
 var util = require('util');
+
+// TODO: PC: May want to use https://www.npmjs.org/package/lodash-node
 var _ = require('underscore');
 var WebSocketServer = require('ws').Server;
 
@@ -9,9 +11,8 @@ var WebSocketServer = require('ws').Server;
   // The WebSocket server.
   var wss;
 
-  // Subprotocol definition.
+  // Subprotocol definition: Could be in a different file, shared among server/client.
   var WS_SUBPROTOCOL = "simple-chat.unitstep.net";
-  // TODO: PC: This is overly verbose and confusing. Simplify. Dubious whether this metadata is needed.
   var FIELDS = {
     COMMAND: "COMMAND",
     USER_NAME: "USER_NAME",
@@ -73,8 +74,7 @@ var WebSocketServer = require('ws').Server;
 
     // Add the connection to the list and setup event handlers.
     ws.chat = {
-      // TODO: PC: Probably not secure!
-      id:  new Date().getTime(),
+      id:  new Date().getTime(), // Just a way to uniquely identify a client.
     };
     wsConnections[ws.chat.id] = ws;
 
@@ -82,6 +82,7 @@ var WebSocketServer = require('ws').Server;
     console.log("Number of connections: %s", Object.keys(wsConnections).length);
 
     ws.on("message", function(message) {
+      // TODO: PC: Ignore messages greater than some limit.
       dispatchInboundMessage(this, message);
     });
 
@@ -114,7 +115,7 @@ var WebSocketServer = require('ws').Server;
           return;
         }
         wsSender.chat.username = m[FIELDS.USER_NAME];
-        console.log("Username for id %s set to %s", wsSender.chat.id, wsSender.chat.username);
+        console.log("Login for id %s. Username set to %s", wsSender.chat.id, wsSender.chat.username);
         break;
       case COMMANDS.MESSAGE_IN:
         if (!wsSender.chat.username) {
@@ -133,7 +134,6 @@ var WebSocketServer = require('ws').Server;
         console.warn("Invalid command from id %s: %s", wsSender.chat.id, m[FIELDS.COMMAND]);
         break;
     }
-    
   }
 
   function parseCommand(message) {

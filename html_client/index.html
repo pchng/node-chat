@@ -5,21 +5,29 @@
     <!--
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     -->
-    <title>Node.js WebSocket Test</title>
+    <title>Node.js WebSocket Chat</title>
     <link rel="stylesheet" href="css/styles.css">
   </head>
   <body>
-  <h1>Node.js WebSocket Test</h1>
+  <h1>Node.js WebSocket Chat</h1>
 
-  <h2>Output:</h2>
-  <pre id="output"></pre>
-
-  <h2>Input:</h2>
-  <form id="input">
-    <input id="message" type="text">
-    <input type="submit" value="Send">
-    <input type="button" id="close" value="Close">
+  <form id="login">
+    <label for="username">Username: </label>
+    <input id="username" type="text">
+    <input type="submit" value="Login">
   </form>
+
+  <!-- TODO: PC: Redesign this to look nicer and then show it when the user logs in. -->
+  <div id="chat">
+    <pre id="output"></pre>
+
+    <form id="input">
+      <input id="message" type="text">
+      <input type="submit" value="Send">
+      <input type="button" id="close" value="Close">
+    </form>
+  </div>
+
   
   
   <!-- TODO: PC: Change to protocol-relative URI later. -->

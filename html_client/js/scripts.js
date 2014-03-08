@@ -8,6 +8,9 @@
     return;
   }
 
+  var loginFormSelector = "#login";
+  var userNameSelector = "#username";
+
   var formSelector = "#input";
   var inputSelector = "#message";
   var outputSelector = "#output";
@@ -15,6 +18,16 @@
   
   var socket;
   var WS_SUBPROTOCOL = "simple-chat.unitstep.net";
+  var FIELDS = {
+    COMMAND: "COMMAND",
+    USER_NAME: "USER_NAME",
+    MESSAGE: "MESSAGE",
+  }
+  var COMMANDS = {
+    LOGIN: "LOGIN",
+    MESSAGE_IN: "MESSAGE_IN", 
+    MESSAGE_OUT: "MESSAGE_OUT",
+  }
   var retryQueue = [];
   var retryPendingId;
 
@@ -25,10 +38,45 @@
   var RETRY_BATCH_SIZE = 5;
   
   function init() {
-    setupWebSocketConnection();
+    // setupWebSocketConnection();
     attachEventHandlers();
   }
-  
+
+  function attachEventHandlers() {
+    $(loginFormSelector).submit(login);
+
+    // UI event handlers.
+    // $(formSelector).submit(function(e) {
+    //   e.preventDefault();
+    //   var message = $(inputSelector).val();
+      
+    //   if (message) {
+    //     sendMessage(message);
+    //   }
+    // });
+
+    // $(closeSelector).click(function(e) {
+    //   if (socket) {
+    //     socket.close();
+    //   }
+    // });
+  }
+
+  function login(e) {
+    e.preventDefault();
+
+    var username = $(userNameSelector).val();
+    if (!username) {
+      return;
+    }
+
+    setupWebSocketConnection(function(event) {
+      sendMessage({COMMAND: COMMANDS.LOGIN, USER_NAME: username});
+    }, function(event) {
+      console.error("Could not connect to WebSocket server.");
+    });
+  }
+
   // NOTE: To use Sec-WebSocket-Protocol during handshake:
   // - Client supplies list of valid sub-protcols and server responds with which one it has chosen.
   // new WebSocket(address, (sub)proctocol(s));
@@ -65,25 +113,8 @@
     };
   }
 
-  function attachEventHandlers() {
-    // UI event handlers.
-    $(formSelector).submit(function(e) {
-      e.preventDefault();
-      var message = $(inputSelector).val();
-      
-      if (message) {
-        sendTextMessage(message);
-      }
-    });
-
-    $(closeSelector).click(function(e) {
-      if (socket) {
-        socket.close();
-      }
-    });
-  }
   
-  function sendTextMessage(message) {
+  function sendMessage(message) {
     if (!socket) {
       // Or else socket would not be undefined.
       console.error("WebSocket is not supported in your browser.");
@@ -95,7 +126,7 @@
       return;
     }
 
-    socket.send(message);
+    socket.send(JSON.stringify(message));
   }
 
   function putMessageIntoRetry(message) {
@@ -136,7 +167,7 @@
         // TODO: PC: May want to throttle the rate.
         var message = retryQueue.pop();
         console.log("Retrying message: %s", message)
-        sendTextMessage(message);
+        sendMessage(message);
 
         ++numRetriesProcessed;
         if (RETRY_BATCH_SIZE > 0 && numRetriesProcessed >= RETRY_BATCH_SIZE) {

@@ -3,6 +3,10 @@ html {
 }
 html, body {
 }
+
+#chat {
+  /*display: none;*/
+}
 #output {
   border: 1px solid #000;
   height: 50vh;
