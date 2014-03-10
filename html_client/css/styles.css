@@ -1,14 +1,26 @@
+/*TODO: PC: Incorporate Bootstrap.*/
 html {
   font-family: Helvetica, Arial, sans-serif;
 }
-html, body {
+h1, #login {
+  text-align: center;
 }
-
 #chat {
-  /*display: none;*/
+  display: none;
 }
 #output {
   border: 1px solid #000;
   height: 50vh;
   overflow-y: scroll;
+}
+
+#message {
+  display: inline-block;
+  width: calc(100% - 75px);
+  box-sizing: border-box;
+}
+#send-message {
+  display: inline-block;
+  width: 75px;
+  box-sizing: border-box;
 }

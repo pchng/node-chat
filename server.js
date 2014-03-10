@@ -11,17 +11,18 @@ var WebSocketServer = require('ws').Server;
   // The WebSocket server.
   var wss;
 
-  // Subprotocol definition: Could be in a different file, shared among server/client.
+  // Subprotocol definition: Could be in a separate file, shared among server/client.
   var WS_SUBPROTOCOL = "simple-chat.unitstep.net";
   var FIELDS = {
     COMMAND: "COMMAND",
-    USER_NAME: "USER_NAME",
+    USERNAME: "USERNAME",
     MESSAGE: "MESSAGE",
   }
   var COMMANDS = {
     LOGIN: "LOGIN",
     MESSAGE_IN: "MESSAGE_IN", 
     MESSAGE_OUT: "MESSAGE_OUT",
+    LOGOUT: "LOGOUT",
   }
 
   // List of connected client WebSockets.
@@ -90,6 +91,7 @@ var WebSocketServer = require('ws').Server;
       var wsSender = this;
       delete wsConnections[wsSender.chat.id];
       console.log("Closed connection for id: %s", wsSender.chat.id);
+      // TODO: PC: Broadcast message that user has left.
     });
 
     ws.on("pong", function(event) {
@@ -114,8 +116,9 @@ var WebSocketServer = require('ws').Server;
           console.warn("Username already set for command: %s", message);
           return;
         }
-        wsSender.chat.username = m[FIELDS.USER_NAME];
+        wsSender.chat.username = m[FIELDS.USERNAME];
         console.log("Login for id %s. Username set to %s", wsSender.chat.id, wsSender.chat.username);
+        // TODO: PC: Broadcast user logged in message.
         break;
       case COMMANDS.MESSAGE_IN:
         if (!wsSender.chat.username) {
@@ -125,6 +128,7 @@ var WebSocketServer = require('ws').Server;
         if (m[FIELDS.MESSAGE]) {
           var outMessage = {
             COMMAND: COMMANDS.MESSAGE_OUT,
+            USERNAME: wsSender.chat.username,
             MESSAGE: m[FIELDS.MESSAGE],
           }
           dispatchOutboundMessage(outMessage);
@@ -178,7 +182,7 @@ var WebSocketServer = require('ws').Server;
     // Only one chat room, and everyone in it.
     for (var id in wsConnections) {
       // TODO: PC: Check readyState and/or remove connection if fails.
-      wsConnections[id].send(message);
+      wsConnections[id].send(JSON.stringify(message));
     }
   }
 

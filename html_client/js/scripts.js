@@ -10,24 +10,28 @@
 
   var loginFormSelector = "#login";
   var userNameSelector = "#username";
-
+  var chatSelector = "#chat";
   var formSelector = "#input";
   var inputSelector = "#message";
   var outputSelector = "#output";
   var closeSelector = "#close";
-  
-  var socket;
+
+  // Subprotocol definition: Could be in a separate file, shared among server/client.
   var WS_SUBPROTOCOL = "simple-chat.unitstep.net";
   var FIELDS = {
     COMMAND: "COMMAND",
-    USER_NAME: "USER_NAME",
+    USERNAME: "USERNAME",
     MESSAGE: "MESSAGE",
   }
   var COMMANDS = {
     LOGIN: "LOGIN",
     MESSAGE_IN: "MESSAGE_IN", 
     MESSAGE_OUT: "MESSAGE_OUT",
+    LOGOUT: "LOGOUT",
   }
+
+  var username;
+  var socket;
   var retryQueue = [];
   var retryPendingId;
 
@@ -44,16 +48,7 @@
 
   function attachEventHandlers() {
     $(loginFormSelector).submit(login);
-
-    // UI event handlers.
-    // $(formSelector).submit(function(e) {
-    //   e.preventDefault();
-    //   var message = $(inputSelector).val();
-      
-    //   if (message) {
-    //     sendMessage(message);
-    //   }
-    // });
+    $(formSelector).submit(sendChatMessage);
 
     // $(closeSelector).click(function(e) {
     //   if (socket) {
@@ -65,13 +60,20 @@
   function login(e) {
     e.preventDefault();
 
-    var username = $(userNameSelector).val();
-    if (!username) {
+    var usernameInput = $(userNameSelector).val();
+    if (!usernameInput) {
       return;
     }
 
+    // TODO: PC: UI indicator that process of "Logging in" is taking place.
+    var loginForm = $(this);
+    loginForm.append("<p>Logging in...</p>");
+
     setupWebSocketConnection(function(event) {
-      sendMessage({COMMAND: COMMANDS.LOGIN, USER_NAME: username});
+      sendMessage({COMMAND: COMMANDS.LOGIN, USERNAME: usernameInput});
+      username = usernameInput;
+      loginForm.slideUp();
+      $(chatSelector).slideDown();
     }, function(event) {
       console.error("Could not connect to WebSocket server.");
     });
@@ -100,7 +102,7 @@
       if (event && event.code != 1000 && errorCallback) {
         errorCallback(event);
       }
-      outputTextMessage("Connection closed");
+      outputRawTextMessage("Connection closed");
     };
     // NOTE: This doesn't seem to fire.
     socket.onerror = function(event) {
@@ -109,11 +111,21 @@
 
     socket.onmessage = function(event) {
       console.log(event);
-      outputTextMessage(event.data);
+      outputChatMessage(JSON.parse(event.data));
     };
   }
 
-  
+  function sendChatMessage(e) {
+    e.preventDefault();
+    var input = $(inputSelector);
+    var message = input.val()
+    if (message) {
+      sendMessage({COMMAND: COMMANDS.MESSAGE_IN, MESSAGE: message});
+      input.val("");
+    }
+  }
+
+  // TODO: PC: Rename to indicate this is the low-level function.
   function sendMessage(message) {
     if (!socket) {
       // Or else socket would not be undefined.
@@ -156,6 +168,8 @@
     }
 
     if (socket.readyState != WebSocket.OPEN) {
+      // TODO: PC: Login with username again; put this functionality into a separate function of
+      // post-WebSocket open functionality to execute.
       setupWebSocketConnection(retryMessage, failedToConnect);
     } else {
       retryMessage();
@@ -192,7 +206,16 @@
     }
   }
   
-  function outputTextMessage(message) {
+  function outputChatMessage(message) {
+    // TODO: PC: Optional timestamp; just client side for now.
+    // TODO: PC: Use handlebars or similar to prevent XSS/injection.
+    var span = $(document.createElement("span"));
+    var message = message.USERNAME + ": " + message.MESSAGE;
+    span.text(message + "\n");
+    $(outputSelector).append(span);
+  }
+
+  function outputRawTextMessage(message) {
     $(outputSelector).append(message + "\n");
   }
 
