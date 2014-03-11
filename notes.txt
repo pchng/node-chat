@@ -7,4 +7,11 @@ https://github.com/einaros/ws/blob/master/lib/WebSocketServer.js
 
 Chat:
 - Use Node http to serve up static page as client; see if can run on same port as WS. (This will be needed for deployment)
+  http://stackoverflow.com/questions/6084360/node-js-as-a-simple-web-server
+  http://stackoverflow.com/questions/16333790/node-js-quick-file-server-static-files-over-http
+  http://stackoverflow.com/questions/14576644/whats-the-simplest-way-to-serve-static-files-using-node-js
+  https://github.com/cloudhead/node-static
+  - Not exactly what we need:
+  https://gist.github.com/davatron5000/2254924
+  
 - Ajax endpoint to test if username is in use before login.

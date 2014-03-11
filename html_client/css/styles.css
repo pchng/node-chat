@@ -3,7 +3,16 @@ html {
   font-family: Helvetica, Arial, sans-serif;
 }
 h1, #login {
-  text-align: center;
+  text-align: center; 
+}
+#login {
+  height: 100px;
+  position: absolute;
+  margin: auto;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
 }
 #chat {
   display: none;

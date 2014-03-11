@@ -4,6 +4,9 @@ var util = require('util');
 var _ = require('underscore');
 var WebSocketServer = require('ws').Server;
 
+var nodeStatic = require("node-static");
+var http = require("http");
+
 // Namespacing pattern to create an extensible object based around closure from a 
 // self-executing anonymous function.
 (function(application, undefined) {
@@ -17,25 +20,34 @@ var WebSocketServer = require('ws').Server;
     COMMAND: "COMMAND",
     USERNAME: "USERNAME",
     MESSAGE: "MESSAGE",
+    TIMESTAMP: "TIMESTAMP",
   }
+  // TODO: PC: May not need in/out; direction is implicit when message received.
   var COMMANDS = {
     LOGIN: "LOGIN",
     MESSAGE_IN: "MESSAGE_IN", 
     MESSAGE_OUT: "MESSAGE_OUT",
     LOGOUT: "LOGOUT",
+    USER_JOINED: "USER_JOINED",
+    USER_LEFT: "USER_LEFT",
   }
 
   // List of connected client WebSockets.
   var wsConnections = {};
+  // List of usernames; avoid using an Object so built-in properties cannot be overridden.
+  var usernames = [];
   var keepAliveIntervalId;
   var config;
+  var httpServer;
 
-  application.startServer = function(conf) {
+  application.startServer = function(conf, httpServerExtending) {
     config = conf;
+    httpServer = httpServerExtending
     setupWebSocketServer();
+
     console.info("Started WebSocket server on port %s.", config.port);
     if (config.keepAlive && config.keepAliveInterval) {
-      console.info("Enabling keep-alive check every %s ms.", config.keepAliveInterval);
+      console.info("Enabling client keep-alive check every %s ms.", config.keepAliveInterval);
       keepAliveIntervalId = setInterval(keepAliveCheck, config.keepAliveInterval);
     }
   }
@@ -45,7 +57,8 @@ var WebSocketServer = require('ws').Server;
   }
 
   function setupWebSocketServer() {
-    // NOTE: Can also extend/upgrade an existing http.createServer()
+    // NOTE: This is extending an existing http.createServer() so we can use the same port.
+    // Could have it operating on a separate port using 'port' in the options.
 
     // NOTE: handleProtocols must be a function like this.
     // Callback: function(boolean result, string protocolToUse)
@@ -62,7 +75,7 @@ var WebSocketServer = require('ws').Server;
     }
 
     wss = new WebSocketServer({
-      port: config.port,
+      server: httpServer,
       handleProtocols: handleProtocols,
     });
 
@@ -88,10 +101,7 @@ var WebSocketServer = require('ws').Server;
     });
 
     ws.on("close", function(closeCode, closeMessage) {
-      var wsSender = this;
-      delete wsConnections[wsSender.chat.id];
-      console.log("Closed connection for id: %s", wsSender.chat.id);
-      // TODO: PC: Broadcast message that user has left.
+      logoutUser(this);
     });
 
     ws.on("pong", function(event) {
@@ -116,9 +126,24 @@ var WebSocketServer = require('ws').Server;
           console.warn("Username already set for command: %s", message);
           return;
         }
+
+        if (usernames.indexOf(m[FIELDS.USERNAME]) > -1) {
+          // Username already in use.
+          // TODO: PC: Reply with a proper message so connection "handshake" can be tried again.
+          console.warn("Username %s is already in use.", m[FIELDS.USERNAME]);
+          return;
+        }
+
         wsSender.chat.username = m[FIELDS.USERNAME];
+        usernames.push(wsSender.chat.username);
         console.log("Login for id %s. Username set to %s", wsSender.chat.id, wsSender.chat.username);
-        // TODO: PC: Broadcast user logged in message.
+
+        var outMessage = {
+          COMMAND: COMMANDS.USER_JOINED,
+          USERNAME: wsSender.chat.username,
+          TIMESTAMP: new Date(),
+        }
+        dispatchOutboundMessage(outMessage);
         break;
       case COMMANDS.MESSAGE_IN:
         if (!wsSender.chat.username) {
@@ -130,6 +155,7 @@ var WebSocketServer = require('ws').Server;
             COMMAND: COMMANDS.MESSAGE_OUT,
             USERNAME: wsSender.chat.username,
             MESSAGE: m[FIELDS.MESSAGE],
+            TIMESTAMP: new Date(),
           }
           dispatchOutboundMessage(outMessage);
         }
@@ -151,9 +177,12 @@ var WebSocketServer = require('ws').Server;
 
   function dispatchOutboundMessage(message) {
     switch (message[FIELDS.COMMAND]) {
+      case COMMANDS.USER_JOINED:
+      case COMMANDS.USER_LEFT:
       case COMMANDS.MESSAGE_OUT:
         sendChatMessage(message);
         break;
+
       default:
         console.warn("Invalid command for outbound message: %s", message);
         break;
@@ -172,15 +201,35 @@ var WebSocketServer = require('ws').Server;
         // TODO: PC: This may not cover all cases. In the case where the PING is sent out,
         // but a PONG is not received, the connection should be removed.
         // How to accomplish this? Make sure this is robust.
-        delete wsConnections[id];
+        logoutUser(wsConnections[id]);
         console.log("Removed connection with id %s because could not send out ping: %s", id, e);
       }
     }
   }
 
+  function logoutUser(wsSender) {
+    delete wsConnections[wsSender.chat.id];
+    usernames = _.without(usernames, wsSender.chat.username);
+
+    console.log("Closed connection for username %s with id: %s", wsSender.chat.username, wsSender.chat.id);
+    
+    var outMessage = {
+      COMMAND: COMMANDS.USER_LEFT,
+      USERNAME: wsSender.chat.username,
+      TIMESTAMP: new Date(),
+    }
+    dispatchOutboundMessage(outMessage);
+  }
+
   function sendChatMessage(message) {
     // Only one chat room, and everyone in it.
     for (var id in wsConnections) {
+
+      if (!wsConnections[id].chat.username) {
+        // User is not logged in.
+        continue;
+      }
+
       // TODO: PC: Check readyState and/or remove connection if fails.
       wsConnections[id].send(JSON.stringify(message));
     }
@@ -190,10 +239,24 @@ var WebSocketServer = require('ws').Server;
 
 })(application = (typeof application !== "undefined" ? application : {}));
 
-// Start the server.
+// TODO: PC: Put this into an external configuration file.
+// http://stackoverflow.com/questions/5869216/how-to-store-node-js-deployment-settings-configuration-files
 var config = {
   port: 8080,
   keepAlive: true,
   keepAliveInterval: 5000,
 };
-application.startServer(config);
+
+// Static HTTP server to serve the HTML/JS client.
+var staticFiles = new nodeStatic.Server("./html_client");
+var httpServer = http.createServer(function(request, response) {
+  request.on("end", function() {
+    // Fires when the request stream has been completely read.
+    staticFiles.serve(request, response);
+  }).resume(); // Triggers the stream to be read completely.
+});
+httpServer.listen(config.port);
+console.log("HTTP server started on port %s.", config.port);
+
+// Start the WebSocket server, listening on the same port as the static HTTP server.
+application.startServer(config, httpServer);

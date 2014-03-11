@@ -22,12 +22,15 @@
     COMMAND: "COMMAND",
     USERNAME: "USERNAME",
     MESSAGE: "MESSAGE",
+    TIMESTAMP: "TIMESTAMP",
   }
   var COMMANDS = {
     LOGIN: "LOGIN",
     MESSAGE_IN: "MESSAGE_IN", 
     MESSAGE_OUT: "MESSAGE_OUT",
     LOGOUT: "LOGOUT",
+    USER_JOINED: "USER_JOINED",
+    USER_LEFT: "USER_LEFT",
   }
 
   var username;
@@ -47,7 +50,7 @@
   }
 
   function attachEventHandlers() {
-    $(loginFormSelector).submit(login);
+    $(loginFormSelector).submit(loginUiHandler);
     $(formSelector).submit(sendChatMessage);
 
     // $(closeSelector).click(function(e) {
@@ -57,7 +60,7 @@
     // });
   }
 
-  function login(e) {
+  function loginUiHandler(e) {
     e.preventDefault();
 
     var usernameInput = $(userNameSelector).val();
@@ -70,13 +73,17 @@
     loginForm.append("<p>Logging in...</p>");
 
     setupWebSocketConnection(function(event) {
-      sendMessage({COMMAND: COMMANDS.LOGIN, USERNAME: usernameInput});
+      sendLoginToWsServer(usernameInput);
       username = usernameInput;
       loginForm.slideUp();
       $(chatSelector).slideDown();
     }, function(event) {
       console.error("Could not connect to WebSocket server.");
     });
+  }
+
+  function sendLoginToWsServer(username) {
+    sendMessage({COMMAND: COMMANDS.LOGIN, USERNAME: username});
   }
 
   // NOTE: To use Sec-WebSocket-Protocol during handshake:
@@ -133,6 +140,9 @@
       return;
     }
 
+    // TODO: PC: Does it even make sense to retry? Maybe should display a message that the 
+    // server is unreachable and wait for auto/triggered-retry to connect so user can 
+    // interactively chat again.
     if (socket.readyState != WebSocket.OPEN) {
       putMessageIntoRetry(message);
       return;
@@ -155,7 +165,6 @@
     }
   }
 
-  // TODO: PC: How many messages to try at a time? Batch size? Stop after failure if batch?
   function checkRetryQueue() {
 
     console.log("Checking retry queue (n=%s) at %s.", retryQueue.length, new Date());
@@ -168,9 +177,10 @@
     }
 
     if (socket.readyState != WebSocket.OPEN) {
-      // TODO: PC: Login with username again; put this functionality into a separate function of
-      // post-WebSocket open functionality to execute.
-      setupWebSocketConnection(retryMessage, failedToConnect);
+      setupWebSocketConnection(function(event) {
+        sendLoginToWsServer(username);
+        retryMessage();
+      }, failedToConnect);
     } else {
       retryMessage();
     }
@@ -209,10 +219,27 @@
   function outputChatMessage(message) {
     // TODO: PC: Optional timestamp; just client side for now.
     // TODO: PC: Use handlebars or similar to prevent XSS/injection.
-    var span = $(document.createElement("span"));
-    var message = message.USERNAME + ": " + message.MESSAGE;
-    span.text(message + "\n");
-    $(outputSelector).append(span);
+    var output;
+    switch (message.COMMAND) {
+      case COMMANDS.USER_JOINED:
+        output = message.USERNAME + " has joined.";
+        break;
+      case COMMANDS.USER_LEFT:
+        output = message.USERNAME + " has left.";
+        break;
+      case COMMANDS.MESSAGE_OUT:
+        output = message.USERNAME + ": " + message.MESSAGE;
+        break;
+      default:
+        console.warn("Invalid command: %s", message.COMMAND);
+        break;
+    }
+
+    if (output) {
+      var span = $(document.createElement("span"));
+      span.text(output + "\n");
+      $(outputSelector).append(span);
+    }
   }
 
   function outputRawTextMessage(message) {
