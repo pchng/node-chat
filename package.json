@@ -4,6 +4,7 @@
   "description": "",
   "main": "server.js",
   "dependencies": {
+    "node-static": "~0.7.3",
     "underscore": "~1.6.0",
     "ws": "~0.4.31"
   },
@@ -17,5 +18,5 @@
     "url": "git@bitbucket.org:pchng/node-js-websocket-chat.git"
   },
   "author": "",
-  "license": "ISC"
+  "license": "BSD-2-Clause"
 }
