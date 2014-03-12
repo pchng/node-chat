@@ -21,6 +21,7 @@ var http = require("http");
     USERNAME: "USERNAME",
     MESSAGE: "MESSAGE",
     TIMESTAMP: "TIMESTAMP",
+    REASON: "REASON",
   }
   // TODO: PC: May not need in/out; direction is implicit when message received.
   var COMMANDS = {
@@ -30,6 +31,8 @@ var http = require("http");
     LOGOUT: "LOGOUT",
     USER_JOINED: "USER_JOINED",
     USER_LEFT: "USER_LEFT",
+    LOGIN_SUCCESS: "LOGIN_SUCCESS",
+    LOGIN_FAILURE: "LOGIN_FAILURE",
   }
 
   // List of connected client WebSockets.
@@ -122,28 +125,7 @@ var http = require("http");
     // TODO: PC: Use an object name->function mapping here instead of this switch stuff.
     switch (m[FIELDS.COMMAND]) {
       case COMMANDS.LOGIN:
-        if (wsSender.chat.username) {
-          console.warn("Username already set for command: %s", message);
-          return;
-        }
-
-        if (usernames.indexOf(m[FIELDS.USERNAME]) > -1) {
-          // Username already in use.
-          // TODO: PC: Reply with a proper message so connection "handshake" can be tried again.
-          console.warn("Username %s is already in use.", m[FIELDS.USERNAME]);
-          return;
-        }
-
-        wsSender.chat.username = m[FIELDS.USERNAME];
-        usernames.push(wsSender.chat.username);
-        console.log("Login for id %s. Username set to %s", wsSender.chat.id, wsSender.chat.username);
-
-        var outMessage = {
-          COMMAND: COMMANDS.USER_JOINED,
-          USERNAME: wsSender.chat.username,
-          TIMESTAMP: new Date(),
-        }
-        dispatchOutboundMessage(outMessage);
+        handleLogin(wsSender);
         break;
       case COMMANDS.MESSAGE_IN:
         if (!wsSender.chat.username) {
@@ -173,6 +155,50 @@ var http = require("http");
       console.warn("Could not parse command: %s", message);
       return false;
     }
+  }
+
+  function handleLogin(wsSender) {
+    if (!m[FIELDS.USERNAME] || !m[FIELDS.USERNAME].trim()) {
+      console.warn("Empty or invalid username for connection id: %s", wsSender.chat.id);
+      wsSender.send(JSON.stringify(
+        {COMMAND: COMMANDS.LOGIN_FAILURE, REASON: "Invalid username."}
+      ));
+      return;
+    }
+
+    if (wsSender.chat.username) {
+      console.warn("Username already set for command: %s", message);
+      wsSender.send(JSON.stringify(
+        {COMMAND: COMMANDS.LOGIN_FAILURE, REASON: "Username already set."}
+      ));
+      return;
+    }
+
+    if (usernames.indexOf(m[FIELDS.USERNAME]) > -1) {
+      // Username already in use.
+      // TODO: PC: Reply with a proper message so connection "handshake" can be tried again.
+      console.warn("Username %s is already in use.", m[FIELDS.USERNAME]);
+      wsSender.send(JSON.stringify(
+        {COMMAND: COMMANDS.LOGIN_FAILURE, REASON: "Username is already in use."}
+      ));
+      return;
+    }
+
+    // Set username to indicate "logged in".
+    wsSender.chat.username = m[FIELDS.USERNAME];
+    usernames.push(wsSender.chat.username);
+
+    console.log("Login for id %s. Username set to %s", wsSender.chat.id, wsSender.chat.username);
+
+    var successMessage = {COMMAND: COMMANDS.LOGIN_SUCCESS};
+    wsSender.send(JSON.stringify(successMessage));
+
+    var outMessage = {
+      COMMAND: COMMANDS.USER_JOINED,
+      USERNAME: wsSender.chat.username,
+      TIMESTAMP: new Date(),
+    }
+    dispatchOutboundMessage(outMessage);
   }
 
   function dispatchOutboundMessage(message) {
@@ -213,12 +239,14 @@ var http = require("http");
 
     console.log("Closed connection for username %s with id: %s", wsSender.chat.username, wsSender.chat.id);
     
-    var outMessage = {
-      COMMAND: COMMANDS.USER_LEFT,
-      USERNAME: wsSender.chat.username,
-      TIMESTAMP: new Date(),
+    if (wsSender.chat.username) {
+      var outMessage = {
+        COMMAND: COMMANDS.USER_LEFT,
+        USERNAME: wsSender.chat.username,
+        TIMESTAMP: new Date(),
+      }
+      dispatchOutboundMessage(outMessage);
     }
-    dispatchOutboundMessage(outMessage);
   }
 
   function sendChatMessage(message) {
@@ -254,6 +282,16 @@ var httpServer = http.createServer(function(request, response) {
     // Fires when the request stream has been completely read.
     staticFiles.serve(request, response);
   }).resume(); // Triggers the stream to be read completely.
+
+  response.on("finish", function() {
+    console.log('%s - [%s] "%s %s HTTP/%s" %s', 
+      request.connection.remoteAddress, 
+      new Date(), 
+      request.method, 
+      request.url, 
+      request.httpVersion, 
+      response.statusCode);
+  });
 });
 httpServer.listen(config.port);
 console.log("HTTP server started on port %s.", config.port);

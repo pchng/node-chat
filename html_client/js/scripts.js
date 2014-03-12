@@ -12,7 +12,7 @@
   var userNameSelector = "#username";
   var chatSelector = "#chat";
   var formSelector = "#input";
-  var inputSelector = "#message";
+  var messageSelector = "#message";
   var outputSelector = "#output";
   var closeSelector = "#close";
 
@@ -23,7 +23,9 @@
     USERNAME: "USERNAME",
     MESSAGE: "MESSAGE",
     TIMESTAMP: "TIMESTAMP",
+    REASON: "REASON",
   }
+  // TODO: PC: May not need in/out; direction is implicit when message received.
   var COMMANDS = {
     LOGIN: "LOGIN",
     MESSAGE_IN: "MESSAGE_IN", 
@@ -31,6 +33,8 @@
     LOGOUT: "LOGOUT",
     USER_JOINED: "USER_JOINED",
     USER_LEFT: "USER_LEFT",
+    LOGIN_SUCCESS: "LOGIN_SUCCESS",
+    LOGIN_FAILURE: "LOGIN_FAILURE",
   }
 
   var username;
@@ -52,14 +56,9 @@
   function attachEventHandlers() {
     $(loginFormSelector).submit(loginUiHandler);
     $(formSelector).submit(sendChatMessage);
-
-    // $(closeSelector).click(function(e) {
-    //   if (socket) {
-    //     socket.close();
-    //   }
-    // });
   }
 
+  // TODO: FIX: PC: Doesn't work in iOS7/Safari or Android/Chrome.
   function loginUiHandler(e) {
     e.preventDefault();
 
@@ -69,20 +68,21 @@
     }
 
     // TODO: PC: UI indicator that process of "Logging in" is taking place.
+    // - If encounter close event, indicate with error message and re-enable form or
+    // else gets stuck in disabled state.
     var loginForm = $(this);
-    loginForm.append("<p>Logging in...</p>");
+    loginForm.find("input").prop("disabled", true);
+    loginForm.find(".status").text("Logging in...");
 
     setupWebSocketConnection(function(event) {
       sendLoginToWsServer(usernameInput);
-      username = usernameInput;
-      loginForm.slideUp();
-      $(chatSelector).slideDown();
     }, function(event) {
       console.error("Could not connect to WebSocket server.");
     });
   }
 
   function sendLoginToWsServer(username) {
+    console.log(username);
     sendMessage({COMMAND: COMMANDS.LOGIN, USERNAME: username});
   }
 
@@ -93,6 +93,12 @@
   function setupWebSocketConnection(successCallback, errorCallback) {
     if (!window.WebSocket) {
       window.alert("WebSocket is not supported in your browser.");
+      return;
+    }
+
+    if (socket && socket.readyState == WebSocket.OPEN) {
+      // Already connected.
+      successCallback();
       return;
     }
 
@@ -118,13 +124,33 @@
 
     socket.onmessage = function(event) {
       console.log(event);
-      outputChatMessage(JSON.parse(event.data));
+      dispatchInboundMessage(JSON.parse(event.data));
     };
+  }
+
+  function loginSuccess() {
+    var usernameInput = $(userNameSelector).val();
+    var loginForm = $(loginFormSelector);
+
+    loginForm.find("input").prop("disabled", false);
+    username = usernameInput;
+    loginForm.fadeOut(function() {
+      $(chatSelector).fadeIn();
+      $(messageSelector).focus();
+    });
+  }
+
+  function loginFailure(message) {
+    var usernameInput = $(userNameSelector).val();
+    var loginForm = $(loginFormSelector);
+
+    loginForm.find("input").prop("disabled", false);
+    loginForm.find(".status").text("Error: " + message.REASON);
   }
 
   function sendChatMessage(e) {
     e.preventDefault();
-    var input = $(inputSelector);
+    var input = $(messageSelector);
     var message = input.val()
     if (message) {
       sendMessage({COMMAND: COMMANDS.MESSAGE_IN, MESSAGE: message});
@@ -142,7 +168,7 @@
 
     // TODO: PC: Does it even make sense to retry? Maybe should display a message that the 
     // server is unreachable and wait for auto/triggered-retry to connect so user can 
-    // interactively chat again.
+    // interactively chat again. (Only put the login message into the retryQueue)
     if (socket.readyState != WebSocket.OPEN) {
       putMessageIntoRetry(message);
       return;
@@ -178,7 +204,9 @@
 
     if (socket.readyState != WebSocket.OPEN) {
       setupWebSocketConnection(function(event) {
-        sendLoginToWsServer(username);
+        if (username) {
+          sendLoginToWsServer(username);
+        }
         retryMessage();
       }, failedToConnect);
     } else {
@@ -213,6 +241,25 @@
     function failedToConnect(event) {
       // Failed to establish connection. Wait to try again.
       retryPendingId = window.setTimeout(checkRetryQueue, SIMPLE_RETRY_INTERVAL);
+    }
+  }
+
+  function dispatchInboundMessage(message) {
+    switch (message.COMMAND) {
+      case COMMANDS.LOGIN_SUCCESS:
+        loginSuccess();
+        break;
+      case COMMANDS.LOGIN_FAILURE:
+        loginFailure(message);
+        break;
+      case COMMANDS.USER_JOINED:
+      case COMMANDS.USER_LEFT:
+      case COMMANDS.MESSAGE_OUT:
+        outputChatMessage(message);
+        break;
+      default:
+        console.log("Invalid command: %s", message.COMMAND);
+        break;
     }
   }
   
