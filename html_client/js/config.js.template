@@ -1,3 +1,4 @@
 (function(config, $, undefined) {
+  // TODO: PC: Reduce to just an address and port; use TLS if available.
   config.WEBSOCKET_ADDRESS = "ws://localhost:8080/";
 })(window.config = window.config || {}, jQuery);

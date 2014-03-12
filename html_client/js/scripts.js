@@ -58,7 +58,9 @@
     $(formSelector).submit(sendChatMessage);
   }
 
-  // TODO: FIX: PC: Doesn't work in iOS7/Safari or Android/Chrome.
+  // TODO: FIX: PC: Doesn't work in iOS7/Safari or Android/Chrome at all WHEN SAME PORT used
+  // as HTTP.
+  // - Use a different port: Works on Android/Chrome but CRASHES iOS6|7/Safari.
   function loginUiHandler(e) {
     e.preventDefault();
 
@@ -124,7 +126,13 @@
 
     socket.onmessage = function(event) {
       console.log(event);
-      dispatchInboundMessage(JSON.parse(event.data));
+
+      // TODO: PC: Workaround for iOS/Safari crashing? Seems like the socket isn't ready to send data
+      // and requires a small delay to be truly "ready"?
+      // http://stackoverflow.com/questions/5574385/websockets-on-ios
+      window.setTimeout(function() {
+        dispatchInboundMessage(JSON.parse(event.data));
+      }, 0);
     };
   }
 
@@ -266,6 +274,7 @@
   function outputChatMessage(message) {
     // TODO: PC: Optional timestamp; just client side for now.
     // TODO: PC: Use handlebars or similar to prevent XSS/injection.
+    // TODO: PC: Optional sounds, turn on/off ability.
     var output;
     switch (message.COMMAND) {
       case COMMANDS.USER_JOINED:
