@@ -276,24 +276,6 @@ var config = {
   keepAliveInterval: 5000,
 };
 
-// TODO: PC: The WS upgrade doesn't seem to work on the same port as the regular HTTP server.
-// - Appears to just return 200, causing an error.
-// - Something different in the environment; debug and check logs.
-// - Perhaps need a different URI so can redirect the requests to WS?
-// - Seems like the HTTP server does everything. Is the WS server even started?
-// - May be due to all the network/proxy/load balancers going through; actual port running on is 8080!
-// - It is possible this mucks with the WebSocket transport and it's lost.
-// - Use a different URI to try and make sure the request is not handled by the HTTP server?
-// - Looks like they do some environment/network re-mapping, and you have to use port 8000 for 
-// WS, regardless of what it actually listens on!
-// http://tamas.io/deploying-a-node-jssocket-io-app-to-openshift/
-// http://stackoverflow.com/questions/19948974/websocket-connection-to-openshift-app-failed
-// https://github.com/openshift-quickstart/openshift-nodejs-http-and-websocket-example
-// - Is it 3000 or 8080? [8080 works -> HTTP to 80, WS to 8000]
-// - May want to blog about this, as it's obscure!
-
-
-
 // Static HTTP server to serve the HTML/JS client.
 var staticFiles = new nodeStatic.Server("./html_client");
 var httpServer = http.createServer(function(request, response) {

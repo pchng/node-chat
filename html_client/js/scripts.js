@@ -51,6 +51,7 @@
   function init() {
     // setupWebSocketConnection();
     attachEventHandlers();
+    $(userNameSelector).focus();
   }
 
   function attachEventHandlers() {
@@ -58,9 +59,6 @@
     $(formSelector).submit(sendChatMessage);
   }
 
-  // TODO: FIX: PC: Doesn't work in iOS7/Safari or Android/Chrome at all WHEN SAME PORT used
-  // as HTTP.
-  // - Use a different port: Works on Android/Chrome but CRASHES iOS6|7/Safari.
   function loginUiHandler(e) {
     e.preventDefault();
 
@@ -294,7 +292,7 @@
     if (output) {
       var span = $(document.createElement("span"));
       span.text(output + "\n");
-      $(outputSelector).append(span);
+      $(outputSelector).append(span).scrollTop(span.offset().top);
     }
   }
 

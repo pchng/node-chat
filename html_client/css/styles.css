@@ -21,8 +21,9 @@ h1, #login {
   display: none;
 }
 #output {
-  border: 1px solid #000;
   height: 75vh;
+  border: 1px solid #aaa;
+  padding: 2px 5px;
   overflow-y: scroll;
 }
 
