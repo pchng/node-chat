@@ -41,3 +41,9 @@ https://github.com/openshift-quickstart/openshift-nodejs-http-and-websocket-exam
 
 Configuration: Figure out how to use Konfig with OpenShift: Possible to modify the node start command? Does it use package.json?
 http://stackoverflow.com/questions/5869216/how-to-store-node-js-deployment-settings-configuration-files
+- Can't continue as-is, with separate repos/hard-coded configs.
+
+Client-configuration:
+1) Take domain name from current URL in browser?
+2) Get websocket address/port from simple REST API running on web server? (That way, can get at runtime based on where the server's running)
+3) Test (again) to see if mobile (iOS, Android) works when HTTP and WebSocket share the SAME port.

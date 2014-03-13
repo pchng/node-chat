@@ -42,6 +42,7 @@
   var retryQueue = [];
   var retryPendingId;
 
+  var CHAT_BUFFER_SIZE = 100;
   // How often to retry when they are failed messages.
   var SIMPLE_RETRY_INTERVAL = 5000;
   // When checking the retry queue, this is the maximum number of messages that will be processed.
@@ -57,6 +58,10 @@
   function attachEventHandlers() {
     $(loginFormSelector).submit(loginUiHandler);
     $(formSelector).submit(sendChatMessage);
+    $(window).resize(function(e){
+      // Quick fix: Size output on window resize.
+      $(outputSelector).css("height", 0.75 * $(this).height());
+    });
   }
 
   function loginUiHandler(e) {
@@ -82,7 +87,6 @@
   }
 
   function sendLoginToWsServer(username) {
-    console.log(username);
     sendMessage({COMMAND: COMMANDS.LOGIN, USERNAME: username});
   }
 
@@ -274,6 +278,7 @@
     // TODO: PC: Use handlebars or similar to prevent XSS/injection.
     // TODO: PC: Optional sounds, turn on/off ability.
     var output;
+    var curTimestamp = new Date();
     switch (message.COMMAND) {
       case COMMANDS.USER_JOINED:
         output = message.USERNAME + " has joined.";
@@ -282,7 +287,9 @@
         output = message.USERNAME + " has left.";
         break;
       case COMMANDS.MESSAGE_OUT:
-        output = message.USERNAME + ": " + message.MESSAGE;
+        // TODO: PC: Use some sort of String formatting:
+        // http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format
+        output = "[" + curTimestamp.getHours() + ":" + curTimestamp.getMinutes() + ":" + curTimestamp.getSeconds() + "]" + message.USERNAME + ": " + message.MESSAGE;
         break;
       default:
         console.warn("Invalid command: %s", message.COMMAND);
@@ -290,9 +297,19 @@
     }
 
     if (output) {
+      // TODO: PC: Clear out the "buffer" if number of lines is longer than some limit.
+      var chatOutput = $(outputSelector);
       var span = $(document.createElement("span"));
       span.text(output + "\n");
-      $(outputSelector).append(span).scrollTop(span.offset().top);
+      chatOutput.append(span);
+      chatOutput.scrollTop(chatOutput.prop("scrollHeight"));
+
+      // Clear oldest entries from buffer.
+      var buffer = chatOutput.find("span")
+      var diff = buffer.size() - CHAT_BUFFER_SIZE;
+      if (diff > 0) {
+        buffer.slice(0, diff).remove();
+      }
     }
   }
 
