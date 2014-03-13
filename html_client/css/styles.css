@@ -21,10 +21,15 @@ h1, #login {
   display: none;
 }
 #output {
+  position: relative;
   height: 75vh;
   border: 1px solid #aaa;
   padding: 2px 5px;
   overflow-y: scroll;
+}
+#output .bottom {
+  position: absolute;
+  bottom: 0;
 }
 
 #message {

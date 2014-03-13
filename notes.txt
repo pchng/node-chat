@@ -47,3 +47,5 @@ Client-configuration:
 1) Take domain name from current URL in browser?
 2) Get websocket address/port from simple REST API running on web server? (That way, can get at runtime based on where the server's running)
 3) Test (again) to see if mobile (iOS, Android) works when HTTP and WebSocket share the SAME port.
+4) Resize chat output when keyboard on screen OR ensure all messages align to bottom!
+http://ux.stackexchange.com/questions/17737/responsive-layouts-can-they-respond-to-on-screen-keyboards-i-e-tablet-mo

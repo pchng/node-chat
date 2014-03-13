@@ -13,7 +13,7 @@
   var chatSelector = "#chat";
   var formSelector = "#input";
   var messageSelector = "#message";
-  var outputSelector = "#output";
+  var outputSelector = "#output .bottom";
   var closeSelector = "#close";
 
   // Subprotocol definition: Could be in a separate file, shared among server/client.
