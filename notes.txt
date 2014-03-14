@@ -43,9 +43,23 @@ Configuration: Figure out how to use Konfig with OpenShift: Possible to modify t
 http://stackoverflow.com/questions/5869216/how-to-store-node-js-deployment-settings-configuration-files
 - Can't continue as-is, with separate repos/hard-coded configs.
 
+PROJECT STRUCTURE:
+- UNIT TESTS: Figure out how to do. (Best practices?)
+- Refactor into modules. (For testability)
+http://stackoverflow.com/questions/5311334/what-is-the-purpose-of-nodejs-module-exports-and-how-do-you-use-it
+- How to structure the project? Best practices?
+http://stackoverflow.com/questions/5178334/folder-structure-for-a-nodejs-project
+- Can use Grunt to build/test/deploy?
+
+
+
 Client-configuration:
 1) Take domain name from current URL in browser?
 2) Get websocket address/port from simple REST API running on web server? (That way, can get at runtime based on where the server's running)
 3) Test (again) to see if mobile (iOS, Android) works when HTTP and WebSocket share the SAME port.
 4) Resize chat output when keyboard on screen OR ensure all messages align to bottom!
 http://ux.stackexchange.com/questions/17737/responsive-layouts-can-they-respond-to-on-screen-keyboards-i-e-tablet-mo
+- iOS6/Safari: Not working?
+5) iOS7/Safari: Lag when typing into input chat message field; does not show up immediately.
+6) Optimize sizing for mobile; doesn't look great. Need to make it a RWD.
+- Sometimes font size in chat output box increases dramatically on mobile; probably due to window.resize() event. Fix.

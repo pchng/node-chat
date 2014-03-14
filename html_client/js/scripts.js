@@ -58,6 +58,8 @@
   function attachEventHandlers() {
     $(loginFormSelector).submit(loginUiHandler);
     $(formSelector).submit(sendChatMessage);
+
+    // TODO: PC: May not need this.
     $(window).resize(function(e){
       // Quick fix: Size output on window resize.
       $(outputSelector).css("height", 0.75 * $(this).height());

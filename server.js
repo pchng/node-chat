@@ -115,6 +115,7 @@ var http = require("http");
     // - Look for .emit() calls in WebSocket.js.
   }
 
+  // TODO: PC: Refactor into a separate module/class.
   function dispatchInboundMessage(wsSender, message) {
     m = parseCommand(message);
     if (!m || !m[FIELDS.COMMAND] || !_.contains(COMMANDS, m[FIELDS.COMMAND])) {
