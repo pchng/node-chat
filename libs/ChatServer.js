@@ -1,31 +1,20 @@
 var CONSTANTS = require("./Constants");
 var FIELDS = CONSTANTS.FIELDS;
 var TYPES = CONSTANTS.TYPES;
+var MessageUtil = require("./MessageUtil");
+var InboundMessageRouter = require("./InboundMessageRouter");
+var OutboundMessageRouter = require("./OutboundMessageRouter");
 
 // Subprotocol definition: Could be in a separate file, shared among server/client.
 var WS_SUBPROTOCOL = "simple-chat.unitstep.net";
-
 
 function ChatServer() {
   // Mapping of connection ID -> connection object.
   // Connection ID will be programmatically generated and not from user input so that
   // Object built-in properties cannot be inadvertently overridden.
   this.connections = {};
-}
-
-
-// TODO: PC: Separate module for this, but need a way to access connection list in parent.
-var inBoundMessageRouter = {};
-inBoundMessageRouter[TYPES.login] = function(server, connection, m) {
-  return server.loginUser(connection, m[FIELDS.username]);
-}
-inBoundMessageRouter[TYPES.logout] = function(server, connection, m) {
-  return server.logOutUser(connection);
-}
-
-var outBoundMessageRouter = {};
-outBoundMessageRouter[TYPES.message] = function(server, m) {
-  // TODO: PC: 
+  this.inboundMessageRouter = new InboundMessageRouter(this);
+  this.outboundMessageRouter = new OutboundMessageRouter(this);
 }
 
 /**
@@ -35,13 +24,7 @@ outBoundMessageRouter[TYPES.message] = function(server, m) {
  * @param {Object} the message; the 'type' property determines the message routing.
  * @return {Object} the response to be sent to the client.
  */
-ChatServer.prototype.handleInboundMessage(connection, message) {
-  if (!message || !message[FIELDS.type] || !(message[FIELDS.type] in TYPES)) {
-    console.log("Invalid chat message: %s", JSON.stringify(message));
-    return false;
-  }
-
-  var type = message[FIELDS.type];
+ChatServer.prototype.handleInboundMessage = function(connection, message) {
 
   // NOTE: state machine might be better here.
   if (!(connection.chat && connection.chat.id) && type != TYPES.login) {
@@ -50,15 +33,9 @@ ChatServer.prototype.handleInboundMessage(connection, message) {
     return false;
   }
 
-  if (!(type in inBoundMessageRouter)) {
-    console.log("Unhandled message type: %s", type);
-    return false;
-  }
-
-  var response = inBoundMessageRouter[type](this, connection, message);
+  var response = this.inBoundMessageRouter.handleMessage(connection, message);
   console.log(response);
-  
-  return response;
+  this.handleOutboundMessage(response);
 }
 
 /**
@@ -66,16 +43,9 @@ ChatServer.prototype.handleInboundMessage(connection, message) {
  *
  * @param {Object} message the message; the 'type' property determines the message routing.
  */
-ChatServer.prototype.handleOutboundMessage(message) {
-  if (!message || !message[FIELDS.type] || !(message[FIELDS.type] in TYPES)) {
-    console.log("Invalid chat message: %s", JSON.stringify(message));
-    return false;
-  }
-
-  var type = message[FIELDS.type];
-  outBoundMessageRouter[type](this, message);
+ChatServer.prototype.handleOutboundMessage = function(message) {
+  this.outboundMessageRouter.handleMessage(message);
 }
-
 
 /**
  * Logs a user into the server.
@@ -87,12 +57,12 @@ ChatServer.prototype.handleOutboundMessage(message) {
 ChatServer.prototype.loginUser = function(connection, username) {
   if (!username || !username.trim()) {
     console.log("Empty or invalid username: %s", username);
-    return buildLoginFailureResponse("Invalid username.");
+    return MessageUtil.buildLoginFailureResponse("Invalid username.");
   }
 
   if (connection.chat && connection.chat.username) {
     console.log("Username already set for connection: %s", JSON.stringify(connection.chat));
-    return buildLoginFailureResponse("Username already set");
+    return MessageUtil.buildLoginFailureResponse("Username already set");
   }
 
   // NOTE: Could speed this up by using an Object as an associative array, but
@@ -100,7 +70,7 @@ ChatServer.prototype.loginUser = function(connection, username) {
   for (var i in this.connections) {
     if (this.connections[i].chat.username == username) {
       console.log("Username %s already in use by connection %s.", username, i);
-      return buildLoginFailureResponse("Username already in use.");
+      return MessageUtil.buildLoginFailureResponse("Username already in use.");
     }
   }
 
@@ -117,8 +87,6 @@ ChatServer.prototype.loginUser = function(connection, username) {
   };
 }
 
-
-
 /**
  * Logs out a user and closes the connection. 
  *
@@ -128,12 +96,12 @@ ChatServer.prototype.loginUser = function(connection, username) {
 ChatServer.prototype.logOutUser = function(connection) {
   if (!connection.chat || !connection.chat.id) {
     console.log("Logout failure: Connection id does not exist.");
-    return buildErrorResponse("Connection id doesn't exist.");
+    return MessageUtil.buildErrorResponse("Connection id doesn't exist.");
   }
 
   if (!(connection.chat.id in this.connections)) {
     console.log("Connection with id %s doesn't exist.", id);
-    return buildErrorResponse("Connection doesn't exist or not logged in.");
+    return MessageUtil.buildErrorResponse("Connection doesn't exist or not logged in.");
   }
 
   console.log("Logging out user %s and removing connection id %s.", 
@@ -147,16 +115,4 @@ ChatServer.prototype.logOutUser = function(connection) {
   };
 }
 
-function buildLoginFailureResponse(reason) {
-  var r = {}
-  r[FIELDS.type] = TYPES.login_failure;
-  r[FIELDS.reason] = reason;
-  return r;
-}
-
-function buildErrorResponse(reason) {
-  var r = {}
-  r[FIELDS.type] = TYPES.error;
-  r[FIELDS.reason] = reason;
-  return r;
-}
+module.exports = ChatServer;
