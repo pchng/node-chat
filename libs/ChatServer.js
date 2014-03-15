@@ -21,7 +21,8 @@ function ChatServer() {
  * @param {Object} the message; the 'type' property determines the message routing.
  */
 ChatServer.prototype.handleInboundMessage = function(connection, message) {
-  // TODO: PC: JSON.parse() part of this method's responsibility?
+  console.log("Inbound message %s.", message);
+  message = MessageUtil.parseMessage(message);
 
   // NOTE: state machine might be better here.
   if (!(connection.chat && connection.chat.id) && type != TYPES.login) {

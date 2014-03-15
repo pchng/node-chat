@@ -1,6 +1,18 @@
 var CONSTANTS = require("./Constants");
 
+// TODO: PC: Unit test these functions.
 module.exports = {
+  parseMessage: function(message) {
+    if (typeof(message) === "string") {
+      try {
+        return JSON.parse(message);
+      } catch(e) {
+        console.warn("Invalid JSON: %s", message);
+        return false;
+      }
+    }
+    return message;
+  },
   buildMessageResponse : function(username, message) {
     var r= {};
     r[CONSTANTS.FIELDS.type] = CONSTANTS.TYPES.message;
