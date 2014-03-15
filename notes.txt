@@ -15,6 +15,7 @@ Chat:
   https://gist.github.com/davatron5000/2254924
 - Use WSS (TLS) if available: Possible to use protocol-relative URI for this?
   http://www.websocket.org/echo.html
+- UI: https://news.ycombinator.com/item?id=7404218
   
 - Ajax endpoint to test if username is in use before login.
 

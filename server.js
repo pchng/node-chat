@@ -107,8 +107,8 @@ var http = require("http");
       logoutUser(this);
     });
 
-    ws.on("pong", function(event) {
-      console.log("PONG received: %s", event);
+    ws.on("pong", function() {
+      console.log("PONG received from connection %s", this.chat.id);
     });
 
     // TODO: PC: Other ws event handlers?
