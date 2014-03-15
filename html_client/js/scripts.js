@@ -275,6 +275,7 @@
     }
   }
   
+  // TODO: PC: Refactor into separate module.
   function outputChatMessage(message) {
     // TODO: PC: Optional timestamp; just client side for now.
     // TODO: PC: Use handlebars or similar to prevent XSS/injection.
