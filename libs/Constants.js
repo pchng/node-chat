@@ -1,7 +1,9 @@
 module.exports = {
+  WS_SUBPROTOCOL: "simple-chat.unitstep.net",
   FIELDS: {
     type: "type",
     username: "username",
+    // chatroom: "chatroom",
     message: "message",
     timestamp: "timestamp",
     reason: "reason",

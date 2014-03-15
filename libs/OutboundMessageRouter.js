@@ -10,6 +10,11 @@ function OutboundMessageRouter(server) {
   this.server = server;
 }
 
+/**
+ * Routes an outbound message.
+ * 
+ * @param {Object} message the message.
+ */
 OutboundMessageRouter.prototype.handleMessage = function(message) {
   if (!message) {
     console.log("Invalid or null chat message.");
@@ -27,16 +32,13 @@ OutboundMessageRouter.prototype.handleMessage = function(message) {
   }
 
   console.log("Dispatching outbound message: %s", JSON.stringify(message));
-
-
-  return true;
+  messageRouter[type](this.server, message);
 }
 
 // Internal map of supported message types.
 var messageRouter = {};
 messageRouter[CONSTANTS.TYPES.message] = function(server, message) {
-  // TODO: PC: Broadcast to all connections in server.connections.
-
+  server.sendChatMessage(message);
 }
 
 module.exports = OutboundMessageRouter;

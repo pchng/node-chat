@@ -51,6 +51,7 @@ http://stackoverflow.com/questions/5311334/what-is-the-purpose-of-nodejs-module-
 - How to structure the project? Best practices?
 http://stackoverflow.com/questions/5178334/folder-structure-for-a-nodejs-project
 - Can use Grunt to build/test/deploy?
+- Figure out a way to get interactive Node.js shell so can rapidly prototype/test.
 
 
 

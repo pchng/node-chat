@@ -11,6 +11,12 @@ function InboundMessageRouter(server) {
   this.server = server;
 }
 
+/**
+ * Routes an inbound message and produces an outbound message response.
+ * 
+ * @param {Object} connection the connection the message originated from.
+ * @param {Object} message the message.
+ */
 InboundMessageRouter.prototype.handleMessage = function(connection, message) {
   if (!message) {
     console.log("Invalid or null chat message.");
@@ -39,6 +45,14 @@ messageRouter[CONSTANTS.TYPES.login] = function(server, connection, m) {
 }
 messageRouter[CONSTANTS.TYPES.logout] = function(server, connection, m) {
   return server.logOutUser(connection);
+}
+messageRouter[CONSTANTS.TYPES.message] = function (server, connection, m) {
+  if (!connection.chat.username) {
+    console.log("Username not set for message: %s", JSON.stringify(m));
+    return MessageUtil.buildErrorResponse("Username not set.");
+  }
+
+  return buildMessageResponse(connection.chat.username, m[CONSTANTS.FIELDS.message]);
 }
 
 module.exports = InboundMessageRouter;

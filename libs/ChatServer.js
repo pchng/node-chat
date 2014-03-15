@@ -5,9 +5,6 @@ var MessageUtil = require("./MessageUtil");
 var InboundMessageRouter = require("./InboundMessageRouter");
 var OutboundMessageRouter = require("./OutboundMessageRouter");
 
-// Subprotocol definition: Could be in a separate file, shared among server/client.
-var WS_SUBPROTOCOL = "simple-chat.unitstep.net";
-
 function ChatServer() {
   // Mapping of connection ID -> connection object.
   // Connection ID will be programmatically generated and not from user input so that
@@ -22,9 +19,9 @@ function ChatServer() {
  * 
  * @param {Object} connection the connection the message came from.
  * @param {Object} the message; the 'type' property determines the message routing.
- * @return {Object} the response to be sent to the client.
  */
 ChatServer.prototype.handleInboundMessage = function(connection, message) {
+  // TODO: PC: JSON.parse() part of this method's responsibility?
 
   // NOTE: state machine might be better here.
   if (!(connection.chat && connection.chat.id) && type != TYPES.login) {
@@ -35,7 +32,10 @@ ChatServer.prototype.handleInboundMessage = function(connection, message) {
 
   var response = this.inBoundMessageRouter.handleMessage(connection, message);
   console.log(response);
-  this.handleOutboundMessage(response);
+
+  if (response) {
+    this.handleOutboundMessage(response);
+  }
 }
 
 /**
@@ -104,8 +104,7 @@ ChatServer.prototype.logOutUser = function(connection) {
     return MessageUtil.buildErrorResponse("Connection doesn't exist or not logged in.");
   }
 
-  console.log("Logging out user %s and removing connection id %s.", 
-      connection.chat.username, connection.chat.id);
+  console.log("Logging out user %s and removing connection id %s.", connection.chat.username, connection.chat.id);
   delete this.connections[connection.chat.id];
   connection.close();
 
@@ -113,6 +112,13 @@ ChatServer.prototype.logOutUser = function(connection) {
     types: TYPES.user_left,
     username: connection.chat.username,
   };
+}
+
+ChatServer.prototype.sendChatMessage = function(message) {
+  // NOTE: Only one chatroom for now and everyone who's logged in is in it.
+  for (var id in this.connections) {
+    this.connections[id].send(MessageUtil.marshalMessage(message));
+  }
 }
 
 module.exports = ChatServer;
