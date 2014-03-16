@@ -5,17 +5,23 @@ einaros/ws project: Submit a fix?
 https://github.com/einaros/ws/blob/master/lib/WebSocketServer.js
 - if (!result) abortConnection(socket, 404, 'Unauthorized')
 
+1) Refactor into modules so can unit-test.
+2) Improve UI using something like:
+   https://news.ycombinator.com/item?id=7404218
+3) Add picture upload/share capability using HTML5 File API:
+   http://www.html5rocks.com/en/tutorials/file/dndfiles/
+   (Base64-encode for upload and display in browser)
+   See previous examples we've worked on.
+
 Chat:
-- Use Node http to serve up static page as client; see if can run on same port as WS. (This will be needed for deployment)
+- // Use Node http to serve up static page as client; see if can run on same port as WS. (This will be needed for deployment)
   http://stackoverflow.com/questions/6084360/node-js-as-a-simple-web-server
   http://stackoverflow.com/questions/16333790/node-js-quick-file-server-static-files-over-http
   http://stackoverflow.com/questions/14576644/whats-the-simplest-way-to-serve-static-files-using-node-js
   https://github.com/cloudhead/node-static
-  - Not exactly what we need:
-  https://gist.github.com/davatron5000/2254924
 - Use WSS (TLS) if available: Possible to use protocol-relative URI for this?
   http://www.websocket.org/echo.html
-- UI: https://news.ycombinator.com/item?id=7404218
+- UI: 
   
 - Ajax endpoint to test if username is in use before login.
 
