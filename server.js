@@ -66,6 +66,9 @@ var http = require("http"),
     ws.on("close", function(closeCode, closeMessage) {
       chatServer.logOutUser(ws);
     });
+    ws.on("pong", function() {
+      console.log("PONG received from connection %s", this._socket.remoteAddress);
+    });
 
   }
 
