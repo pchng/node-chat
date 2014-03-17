@@ -1,65 +1,3 @@
-// TODO: PC: require() this from a common file shared with server:
-var CONSTANTS = {
-  WS_SUBPROTOCOL: "simple-chat.unitstep.net",
-  FIELDS: {
-    type: "type",
-    username: "username",
-    // chatroom: "chatroom",
-    message: "message",
-    timestamp: "timestamp",
-    reason: "reason",
-  },
-  TYPES: {
-    announcement: "announcement",
-    login: "login",
-    logout: "logout",
-    message: "message",
-    user_joined: "user_joined",
-    user_left: "user_left",
-    login_success: "login_success",
-    login_failure: "login_failure",
-    error: "error",
-  },
-};
-
-function InboundMessageRouter(client) {
-  this.client = client;
-}
-
-InboundMessageRouter.prototype.handleMessage = function(message) {
-  if (!message) {
-    console.log("Invalid or null chat message.");
-    return false;
-  }
-
-  var type = message[CONSTANTS.FIELDS.type];
-
-  if (!type || !(type in CONSTANTS.TYPES)) {
-    console.log("Invalid chat message: %s", JSON.stringify(message));
-    return false;
-  }
-  if (!(type in messageRouter)) {
-    console.log("Unhandled inbound message type: %s", type);
-    return false;
-  }
-
-  console.log("Dispatching inbound message: %s", JSON.stringify(message));
-
-  return messageRouter[type](this.client, message);
-}
-
-// Internal map of supported message types.
-var messageRouter = {};
-messageRouter[CONSTANTS.TYPES.login_success] = function(client, message) {
-  client.loginSuccess();
-}
-
-MessageUtil = {
-  parse: function(message) {
-    return JSON.parse(message);
-  },
-};
-
 // TODO: PC: Refactor into similar pattern as server, i.e.
 // - ChatClient()
 // - Main script that require()s needed modules.
@@ -160,6 +98,7 @@ MessageUtil = {
       return;
     }
 
+    // TODO: PC: Address should be derived from hostname (it will be the same) and configurable port.
     socket = new WebSocket(config.WEBSOCKET_ADDRESS, CONSTANTS.WS_SUBPROTOCOL);
     socket.onopen = function(event) {
       console.log(event);

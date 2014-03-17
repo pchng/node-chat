@@ -8,8 +8,15 @@ https://github.com/einaros/ws/blob/master/lib/WebSocketServer.js
 0) Start using RequireJS on front-end and refactor to use its module pattern.
 - Get jQuery integrated and use the property idioms/patterns.
 1) Refactor into modules so can unit-test.
+- Use hash of username as key for Object map (hashmap) so can easily test for membership w/o risking built-in Object property overwriting.
+- MD5 should be good enough; doesn't need to be cryptographically secure.
+  http://stackoverflow.com/questions/1655769/fastest-md5-implementation-in-javascript
+  https://github.com/blueimp/JavaScript-MD5
+  https://github.com/satazor/SparkMD5
+- Should the username hash be the primary lookup, instead of server-generated connection ID? Risks?
 2) Improve UI using something like:
    https://news.ycombinator.com/item?id=7404218
+   - Multiple chat rooms using History API/URI hash-fragment?
 3) Add picture upload/share capability using HTML5 File API:
    http://www.html5rocks.com/en/tutorials/file/dndfiles/
    (Base64-encode for upload and display in browser)
