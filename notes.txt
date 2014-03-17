@@ -5,6 +5,8 @@ einaros/ws project: Submit a fix?
 https://github.com/einaros/ws/blob/master/lib/WebSocketServer.js
 - if (!result) abortConnection(socket, 404, 'Unauthorized')
 
+0) Start using RequireJS on front-end and refactor to use its module pattern.
+- Get jQuery integrated and use the property idioms/patterns.
 1) Refactor into modules so can unit-test.
 2) Improve UI using something like:
    https://news.ycombinator.com/item?id=7404218
@@ -12,6 +14,7 @@ https://github.com/einaros/ws/blob/master/lib/WebSocketServer.js
    http://www.html5rocks.com/en/tutorials/file/dndfiles/
    (Base64-encode for upload and display in browser)
    See previous examples we've worked on.
+
 
 Chat:
 - // Use Node http to serve up static page as client; see if can run on same port as WS. (This will be needed for deployment)
