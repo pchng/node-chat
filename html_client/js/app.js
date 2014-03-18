@@ -18,7 +18,7 @@ define(["app/ChatClient"], function(ChatClient) {
   // - Best way to bring in configuration?
 
   // TODO: PC: Address should be derived from hostname (it will be the same) and configurable port.
-  var wsAddress = "ws://localhost:8088/";
+  var wsAddress = "ws://localhost:8080/";
   var client = new ChatClient(wsAddress);
 
   // TODO: PC: Don't enable login until this has loaded!

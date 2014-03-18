@@ -112,18 +112,24 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter) {
     loginForm.find(".status").text("Error: " + message[CONSTANTS.FIELDS.reason]);
   }
 
-  ChatClient.prototype.outputChatMessage = function(message) {
+  ChatClient.prototype.outputChatRoomMessage = function(message) {
     // TODO: PC: Optional timestamp; just client side for now.
     // TODO: PC: Use handlebars or similar to prevent XSS/injection.
     // TODO: PC: Optional sounds, turn on/off ability.
     var output;
-    var timestamp = new Date();
+
     var type = message[CONSTANTS.FIELDS.type];
     switch (type) {
+      case CONSTANTS.TYPES.user_joined:
+        output = getOutputTimestamp() + message[CONSTANTS.FIELDS.username] + " has joined.";
+        break;
+      case CONSTANTS.TYPES.user_left:
+        output = getOutputTimestamp() + message[CONSTANTS.FIELDS.username] + " has left.";
+        break;
       case CONSTANTS.TYPES.message:
         // TODO: PC: Use some sort of String formatting:
         // http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format
-        output = "[" + timestamp.getHours() + ":" + timestamp.getMinutes() + ":" + timestamp.getSeconds() + "]" + message[CONSTANTS.FIELDS.username] + ": " + message[CONSTANTS.FIELDS.message];
+        output = getOutputTimestamp() + message[CONSTANTS.FIELDS.username] + ": " + message[CONSTANTS.FIELDS.message];
         break;
       default:
         console.log("Invalid message type for output: %s", messageType)
@@ -143,6 +149,29 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter) {
         buffer.slice(0, diff).remove();
       }
     }
+  }
+
+  // TODO: PC: Move into DateUtils or similar.
+  function getOutputTimestamp() {
+    var timestamp = new Date();
+    return "[" + formatDateTime("%H:%M:%S", timestamp) + "] "
+  }
+
+  // Only supports {%H, %M, %S} literals.
+  function formatDateTime(formatString, dateTime) {
+    return formatString.replace(
+      "%H", zeroPad(dateTime.getHours(), 2)).replace(
+      "%M", zeroPad(dateTime.getMinutes(), 2)).replace(
+      "%S", zeroPad(dateTime.getSeconds(), 2));
+  }
+
+  function zeroPad(number, length) {
+    var value = number.toString();
+    var diff = length - value.length;
+    for (var i = 0; i < diff; ++i) {
+      value = "0" + value;
+    }
+    return value;
   }
 
   function attachEventHandlers() {

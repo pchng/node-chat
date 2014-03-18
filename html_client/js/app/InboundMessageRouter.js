@@ -33,9 +33,13 @@ define(["app/Constants", "app/MessageUtil"], function(CONSTANTS, MessageUtil) {
   messageRouter[CONSTANTS.TYPES.login_failure] = function(message) {
     this.client.loginFailure(message);
   };
-  messageRouter[CONSTANTS.TYPES.message] = function(message) {
-    this.client.outputChatMessage(message);
-  };
+  messageRouter[CONSTANTS.TYPES.message] = outputChatRoomMessage;
+  messageRouter[CONSTANTS.TYPES.user_joined] = outputChatRoomMessage;
+  messageRouter[CONSTANTS.TYPES.user_left] = outputChatRoomMessage;
+
+  function outputChatRoomMessage(message) {
+    this.client.outputChatRoomMessage(message);
+  }
 
   return InboundMessageRouter;
 });
