@@ -134,22 +134,10 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
       default:
         console.log("Invalid message type for output: %s", messageType)
     }
-
-    if (output) {
-      var chatOutput = $(outputSelector);
-      var span = $(document.createElement("span"));
-      span.text(output + "\n");
-      chatOutput.append(span);
-      chatOutput.scrollTop(chatOutput.prop("scrollHeight"));
-
-      // Clear oldest entries from buffer.
-      var buffer = chatOutput.find("span")
-      var diff = buffer.size() - CHAT_BUFFER_SIZE;
-      if (diff > 0) {
-        buffer.slice(0, diff).remove();
-      }
-    }
+    outputChatMessage(output);
   }
+
+  // TODO: PC: Below functions are a bit icky...
 
   function attachEventHandlers() {
     var self = this;
@@ -187,6 +175,23 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
         console.error("Could not connect to WebSocket server.");
       }
     );
+  }
+
+  function outputChatMessage(output) {
+    if (output) {
+      var chatOutput = $(outputSelector);
+      var span = $(document.createElement("span"));
+      span.text(output + "\n");
+      chatOutput.append(span);
+      chatOutput.scrollTop(chatOutput.prop("scrollHeight"));
+
+      // Clear oldest entries from buffer.
+      var buffer = chatOutput.find("span")
+      var diff = buffer.size() - CHAT_BUFFER_SIZE;
+      if (diff > 0) {
+        buffer.slice(0, diff).remove();
+      }
+    }    
   }
 
   function sendChatMessageHandler(e) {

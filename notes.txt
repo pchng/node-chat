@@ -24,6 +24,7 @@ https://github.com/einaros/ws/blob/master/lib/WebSocketServer.js
    http://backbonejs.org/#
    - Learn example:
    http://backbonejs.org/examples/todos/index.html
+   - Word-wrap?
 3) Add picture upload/share capability using HTML5 File API:
    http://www.html5rocks.com/en/tutorials/file/dndfiles/
    (Base64-encode for upload and display in browser)
@@ -38,9 +39,9 @@ Chat:
   https://github.com/cloudhead/node-static
 - Use WSS (TLS) if available: Possible to use protocol-relative URI for this?
   http://www.websocket.org/echo.html
-- UI: 
-  
+- Start using nodemon to refresh server automatically upon changes.
 - Ajax endpoint to test if username is in use before login.
+  - Use hash function and object property name for quick "in"/membership test.
 
 iOS6/7 and Android/Chrome:
 - WebSocket connection doesn't work when on same port as HTTP server. 
