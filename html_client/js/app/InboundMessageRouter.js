@@ -29,10 +29,13 @@ define(["app/Constants", "app/MessageUtil"], function(CONSTANTS, MessageUtil) {
   var messageRouter = {};
   messageRouter[CONSTANTS.TYPES.login_success] = function(message) {
     this.client.loginSuccess(message);
-  }
+  };
   messageRouter[CONSTANTS.TYPES.login_failure] = function(message) {
     this.client.loginFailure(message);
-  }
+  };
+  messageRouter[CONSTANTS.TYPES.message] = function(message) {
+    this.client.outputChatMessage(message);
+  };
 
   return InboundMessageRouter;
 });
