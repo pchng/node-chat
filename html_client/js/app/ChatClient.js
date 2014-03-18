@@ -12,9 +12,14 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
 
   var CHAT_BUFFER_SIZE = 5;
 
-  // TODO: PC: Continue copying over logic from client-side.
-  // - Consider just a simple object map for message type routing.
-  // - Backbone for model-view binding?
+  // How often to retry when they are failed messages.
+  var SIMPLE_RETRY_INTERVAL = 5000;
+  // When checking the retry queue, this is the maximum number of messages that will be processed.
+  // Set to 0 for no limit.
+  var RETRY_BATCH_SIZE = 5;
+
+  var retryQueue = [];
+  var retryPendingId;
 
   function ChatClient(wsAddress) {
     this._inMessageRouter = new InboundMessageRouter(this);
@@ -23,8 +28,10 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     this._socket = null;
     this._username = null;
 
+    this._retryQueue = [];
+    this._retryPendingId = null;
+
     attachEventHandlers.call(this);
-    $(userNameSelector).focus();
   }
 
   ChatClient.prototype._setupWebSocketConnection = function(successCallback, errorCallback) {
@@ -52,12 +59,16 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
       if (event && event.code != 1000 && errorCallback) {
         errorCallback(event);
       }
+      outputChatMessage("Connection closed.");
     };
     this._socket.onerror = function(event) {
       console.log(event);
     }
     this._socket.onmessage = function(event) {
       console.log(event);
+
+      // TODO: PC: May need this fix:
+      // http://stackoverflow.com/questions/5574385/websockets-on-ios
       self._inMessageRouter.handleMessage(MessageUtil.parse(event.data));
     };
   }
@@ -94,15 +105,46 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     this._socket.send(JSON.stringify(message));
   }
 
+
+  // TODO: PC: Refactor retry into a separate module.
+  ChatClient.prototype._putMessageIntoRetry = function(message) {
+    this._retryQueue.push(message);
+
+    console.log("Putting message on retry queue. Socket status: %s. Queue size: %s",
+      this._socket.readyState, this._retryQueue.length);
+
+    // No need to immediately check the retryQueue if a check is pending or the retryQueue is 
+    // currently being processed.
+    if (!this._retryPendingId) {
+      // TODO: PC: Test without proxy/binding.
+      this._retryPendingId = window.setTimeout($.proxy(this._checkRetryQueue, this), 0);
+    }
+  }
+
+  ChatClient.prototype._checkRetryQueue = function() {
+    console.log("Checking retry queue (n=%s) at %s.", this._retryQueue.length, new Date());
+
+    if (this._retryQueue.length <= 0) {
+      console.log("Retry queue was empty: Take no action.");
+      // Clear the retry ID to indicate no pending retry actions.
+      this._retryPendingId = null;
+      return;
+    }
+
+    // TODO: PC: Finish rest of retry logic/porting here.
+  }
+
+
+
   ChatClient.prototype.loginSuccess = function() {
     var usernameInput = $(userNameSelector).val();
     var loginForm = $(loginFormSelector);
-    this._username = usernameInput;
     loginForm.find("input").prop("disabled", false);
     loginForm.fadeOut(function() {
       $(chatSelector).fadeIn();
       $(messageSelector).focus();
     });
+    this._username = usernameInput;
   }
 
   ChatClient.prototype.loginFailure = function(message) {
@@ -113,7 +155,6 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
   }
 
   ChatClient.prototype.outputChatRoomMessage = function(message) {
-    // TODO: PC: Optional timestamp; just client side for now.
     // TODO: PC: Use handlebars or similar to prevent XSS/injection.
     // TODO: PC: Optional sounds, turn on/off ability.
     var output;
@@ -121,19 +162,21 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     var type = message[CONSTANTS.FIELDS.type];
     switch (type) {
       case CONSTANTS.TYPES.user_joined:
-        output = Util.getChatTimestamp(now) + message[CONSTANTS.FIELDS.username] + " has joined.";
+        output = message[CONSTANTS.FIELDS.username] + " has joined.";
         break;
       case CONSTANTS.TYPES.user_left:
-        output = Util.getChatTimestamp(now) + message[CONSTANTS.FIELDS.username] + " has left.";
+        output = message[CONSTANTS.FIELDS.username] + " has left.";
         break;
       case CONSTANTS.TYPES.message:
         // TODO: PC: Use some sort of String formatting:
         // http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format
-        output = Util.getChatTimestamp(now) + message[CONSTANTS.FIELDS.username] + ": " + message[CONSTANTS.FIELDS.message];
+        output = message[CONSTANTS.FIELDS.username] + ": " + message[CONSTANTS.FIELDS.message];
         break;
       default:
-        console.log("Invalid message type for output: %s", messageType)
+        console.log("Invalid message type for output: %s", messageType);
+        break;
     }
+    output = Util.getChatTimestamp(now) + output;
     outputChatMessage(output);
   }
 
@@ -147,7 +190,6 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     $(formSelector).submit(function(e) {
       sendChatMessageHandler.call(self, e);
     })
-
   }
 
   function loginHandler(e) {
@@ -177,6 +219,16 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     );
   }
 
+  function sendChatMessageHandler(e) {
+    e.preventDefault();
+    var input = $(messageSelector);
+    var message = input.val()
+    if (message) {
+      this._sendChatMessage(message);
+      input.val("");
+    }
+  }
+
   function outputChatMessage(output) {
     if (output) {
       var chatOutput = $(outputSelector);
@@ -191,22 +243,8 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
       if (diff > 0) {
         buffer.slice(0, diff).remove();
       }
-    }    
-  }
-
-  function sendChatMessageHandler(e) {
-    e.preventDefault();
-    var input = $(messageSelector);
-    var message = input.val()
-    if (message) {
-      this._sendChatMessage(message);
-      input.val("");
     }
   }
-
-
-
-
 
   return ChatClient;
 });

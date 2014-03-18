@@ -9,6 +9,7 @@ h1, #login {
   text-align: center; 
 }
 #login {
+  display: none;
   height: 100px;
   position: absolute;
   margin: auto;
