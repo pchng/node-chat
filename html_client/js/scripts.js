@@ -27,9 +27,6 @@
   var retryQueue = [];
   var retryPendingId;
 
-  // TODO: PC: Just prototyping!
-  var inMessageRouter = new InboundMessageRouter(application);
-
   application.initialize = function(conf) {
     if (!conf) {
       throw new Error("No configuration present.");

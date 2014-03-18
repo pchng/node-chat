@@ -17,6 +17,13 @@ https://github.com/einaros/ws/blob/master/lib/WebSocketServer.js
 2) Improve UI using something like:
    https://news.ycombinator.com/item?id=7404218
    - Multiple chat rooms using History API/URI hash-fragment?
+   - JavaScript MVC?
+   http://facebook.github.io/react/
+   https://usepropeller.com/blog/posts/from-backbone-to-react/
+   - Backbone.js?
+   http://backbonejs.org/#
+   - Learn example:
+   http://backbonejs.org/examples/todos/index.html
 3) Add picture upload/share capability using HTML5 File API:
    http://www.html5rocks.com/en/tutorials/file/dndfiles/
    (Base64-encode for upload and display in browser)

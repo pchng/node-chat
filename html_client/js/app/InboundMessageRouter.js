@@ -22,16 +22,17 @@ define(["app/Constants", "app/MessageUtil"], function(CONSTANTS, MessageUtil) {
 
     console.log("Dispatching inbound message: %s", JSON.stringify(message));
 
-    return messageRouter[type](this.client, message);
+    return messageRouter[type].call(this, message);
   }
 
   // Internal map of supported message types.
   var messageRouter = {};
-  messageRouter[CONSTANTS.TYPES.login_success] = function(client, message) {
-    client.loginSuccess();
+  messageRouter[CONSTANTS.TYPES.login_success] = function(message) {
+    this.client.loginSuccess(message);
   }
-
-  console.log(MessageUtil.parse);
+  messageRouter[CONSTANTS.TYPES.login_failure] = function(message) {
+    this.client.loginFailure(message);
+  }
 
   return InboundMessageRouter;
 });

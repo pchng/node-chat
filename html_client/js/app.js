@@ -16,4 +16,8 @@ define(["app/ChatClient"], function(ChatClient) {
   // TODO: PC: Decide if the main app should go in here.
   // - Instantiate and bring in configuration?
   // - Best way to bring in configuration?
+
+  // TODO: PC: Address should be derived from hostname (it will be the same) and configurable port.
+  var wsAddress = "ws://localhost:8088/";
+  var client = new ChatClient(wsAddress);
 });
