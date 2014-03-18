@@ -13,6 +13,8 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter) {
   var CHAT_BUFFER_SIZE = 5;
 
   // TODO: PC: Continue copying over logic from client-side.
+  // - Consider just a simple object map for message type routing.
+  // - Backbone for model-view binding?
 
   function ChatClient(wsAddress) {
     this._inMessageRouter = new InboundMessageRouter(this);
