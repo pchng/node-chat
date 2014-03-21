@@ -67,8 +67,12 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     this._socket.onmessage = function(event) {
       console.log(event);
 
-      // TODO: PC: May need this fix:
+      // TODO: PC: Workaround for iOS/Safari crashing? Seems like the socket isn't ready to send data
+      // and requires a small delay to be truly "ready"?
       // http://stackoverflow.com/questions/5574385/websockets-on-ios
+      // window.setTimeout(function() {
+      //   dispatchInboundMessage(JSON.parse(event.data));
+      // }, 0);
       self._inMessageRouter.handleMessage(MessageUtil.parse(event.data));
     };
   }
