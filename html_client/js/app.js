@@ -12,13 +12,19 @@ requirejs.config({
   }
 })
 
-define(["app/ChatClient", "jquery"], function(ChatClient, $) {
+define(["/js/config.js", "app/ChatClient", "jquery"], function(config, ChatClient, $) {
   // TODO: PC: Decide if the main app should go in here.
   // - Instantiate and bring in configuration?
   // - Best way to bring in configuration?
 
-  // TODO: PC: Address should be derived from hostname (it will be the same) and configurable port.
-  var wsAddress = "ws://localhost:8088/";
+
+  // In our case, the transport used to server the static page indicates 
+  // whether TLS is also supported on the WebSocket connection.
+  var wsProtocol = "wss://"
+  if ("http:" == window.location.protocol) {
+    wsProtocol = "ws://"
+  }
+  var wsAddress = wsProtocol + window.location.hostname + ":" + config.wsPort;
   var client = new ChatClient(wsAddress);
 
   $("#login").fadeIn(function(){

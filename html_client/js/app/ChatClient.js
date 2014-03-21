@@ -10,7 +10,7 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
   var outputSelector = "#output .bottom";
   var closeSelector = "#close";
 
-  var CHAT_BUFFER_SIZE = 5;
+  var CHAT_BUFFER_SIZE = 100;
 
   // How often to retry when they are failed messages.
   var SIMPLE_RETRY_INTERVAL = 5000;
@@ -88,19 +88,20 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
   }
 
   ChatClient.prototype._sendMessage = function(message) {
-    console.log(message);
     if (!this._socket) {
       // Or else socket would not be undefined.
       throw new Error("WebSocket is not supported in your browser.");
     }
 
+    message[CONSTANTS.FIELDS.timestamp] = new Date().getTime();
+
+    // TODO: PC: Does it even make sense to retry? Maybe should display a message that the 
+    // server is unreachable and wait for auto/triggered-retry to connect so user can 
+    // interactively chat again. (Only put the login message into the retryQueue)
     if (this._socket.readyState != WebSocket.OPEN) {
-      // TODO: PC: Do retry here.
-      console.log("Socket not open!");
+      this._putMessageIntoRetry(message);
       return;
     }
-
-    message[CONSTANTS.FIELDS.timestamp] = new Date().getTime();
 
     this._socket.send(JSON.stringify(message));
   }
@@ -116,7 +117,6 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     // No need to immediately check the retryQueue if a check is pending or the retryQueue is 
     // currently being processed.
     if (!this._retryPendingId) {
-      // TODO: PC: Test without proxy/binding.
       this._retryPendingId = window.setTimeout($.proxy(this._checkRetryQueue, this), 0);
     }
   }
@@ -124,6 +124,7 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
   ChatClient.prototype._checkRetryQueue = function() {
     console.log("Checking retry queue (n=%s) at %s.", this._retryQueue.length, new Date());
 
+    var self = this;
     if (this._retryQueue.length <= 0) {
       console.log("Retry queue was empty: Take no action.");
       // Clear the retry ID to indicate no pending retry actions.
@@ -131,9 +132,51 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
       return;
     }
 
-    // TODO: PC: Finish rest of retry logic/porting here.
+    if (this._socket.readyState != WebSocket.OPEN) {
+      this._setupWebSocketConnection(
+        function(event) {
+          if (self._username) {
+            self._sendLogin(self._username);
+          }
+          self._retryMessage();
+        },
+        function(event) {
+          // Failed to reconnect.
+          self._retryPendingId = window.setTimeout($.proxy(self._checkRetryQueue, self), SIMPLE_RETRY_INTERVAL);
+        }
+      );
+    } else {
+      // Socket already open, so retry immediately.
+      this._retryMessage();
+    }
   }
 
+  ChatClient.prototype._retryMessage = function() {
+    var numRetriesProcessed = 0;
+    while (this._retryQueue.length > 0 && this._socket.readyState == WebSocket.OPEN) {
+      // TODO: PC: May want to throttle the rate.
+      var message = this._retryQueue.shift();
+      console.log("Retrying message: %s", JSON.stringify(message));
+      this._sendMessage(message);
+
+      ++numRetriesProcessed;
+
+      // Logic is a bit simpler if we exclude this condition from the while condition.
+      if (RETRY_BATCH_SIZE > 0 && numRetriesProcessed >= RETRY_BATCH_SIZE) {
+        break;
+      }
+    }
+
+    console.log("Processed %s retries. Remaining retries: %s.", numRetriesProcessed, this._retryQueue.length);
+
+    if (this._retryQueue.length > 0) {
+      // Retries remain.
+      this._retryPendingId = window.setTimeout($.proxy(this._checkRetryQueue, this), SIMPLE_RETRY_INTERVAL);
+    } else {
+      // Clear retry pending ID to indicate no more pending retries.
+      this._retryPendingId = null;
+    }
+  }
 
 
   ChatClient.prototype.loginSuccess = function() {
@@ -214,7 +257,7 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
         self._sendLogin(usernameInput);
       },
       function(event) {
-        console.error("Could not connect to WebSocket server.");
+        console.error("Error connecting to WebSocket server or connection closed abnormally.");
       }
     );
   }
@@ -235,7 +278,7 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
       var span = $(document.createElement("span"));
       span.text(output + "\n");
       chatOutput.append(span);
-      chatOutput.scrollTop(chatOutput.prop("scrollHeight"));
+      // chatOutput.scrollTop(chatOutput.prop("scrollHeight"));
 
       // Clear oldest entries from buffer.
       var buffer = chatOutput.find("span")
