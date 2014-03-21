@@ -2,7 +2,8 @@ var http = require("http"),
     nodeStatic = require("node-static"),
     WebSocketServer = require("ws").Server,
     CONSTANTS = require("./lib/Constants"),
-    ChatServer = require("./lib/ChatServer");
+    ChatServer = require("./lib/ChatServer"),
+    ConnectionHeartBeat = require("./lib/ConnectionHeartBeat");
 
 // Namespacing pattern to create an extensible object based around closure from a 
 // self-executing anonymous function.
@@ -13,6 +14,7 @@ var http = require("http"),
   var chatServer;
   var config;
   var httpServer;
+  var heartBeatCheck;
 
   application.startServer = function(conf, httpServerExtending) {
     config = conf;
@@ -22,10 +24,18 @@ var http = require("http"),
     console.info("Started WebSocket server on port %s.", config.port);
 
     chatServer = new ChatServer();
+
+    if (config.keepAlive && config.keepAliveInterval) {
+      heartBeatCheck = new ConnectionHeartBeat(chatServer.connections, config.keepAliveInterval, 
+        function(connection) {
+          closeConnection(connection, true);
+        }
+      );
+    }
   };
 
   application.stopServer = function() {
-    // TODO: PC: Figure out how to do this.
+    // TODO: PC: Needed?
   }
 
   function setupWebSocketServer() {
@@ -66,7 +76,7 @@ var http = require("http"),
     ws.on("close", function(closeCode, closeMessage) {
       var response = chatServer.logOutUser(ws);
       chatServer.handleOutboundMessage(response);
-      console.log("Number of connections: %s.", wss.clients.length);
+      console.log("WebSocket closed with code %s. Number of connections: %s.", closeCode, wss.clients.length);
     });
     ws.on("pong", function() {
       console.log("PONG received from connection %s", this._socket.remoteAddress);
@@ -74,7 +84,13 @@ var http = require("http"),
 
   }
 
-
+  // TODO: PC: Functionality below needs to be tied to a module; don't let this file get messy.
+  function closeConnection(connection, isTimeout) {
+    var response = chatServer.logOutUser(connection, isTimeout);
+    chatServer.handleOutboundMessage(response);
+    connection.close();
+    console.log("Closed connection. Number of connections: %s.", wss.clients.length);
+  }
 
 })(application = (typeof application !== "undefined" ? application : {}));
 
@@ -85,7 +101,7 @@ var config = {
   ip: process.env.OPENSHIFT_NODEJS_IP || "0.0.0.0",
   port: process.env.OPENSHIFT_NODEJS_PORT || 8080,
   keepAlive: true,
-  keepAliveInterval: 5000,
+  keepAliveInterval: 15000,
 };
 
 // Static HTTP server to serve the HTML/JS client.

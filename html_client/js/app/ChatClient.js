@@ -204,6 +204,7 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
   ChatClient.prototype.outputChatRoomMessage = function(message) {
     // TODO: PC: Use handlebars or similar to prevent XSS/injection.
     // TODO: PC: Optional sounds, turn on/off ability.
+    // TODO: PC: Use a MessageUtil functions for generating output.
     var output;
     var now = new Date();
     var type = message[CONSTANTS.FIELDS.type];
@@ -213,6 +214,9 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
         break;
       case CONSTANTS.TYPES.user_left:
         output = message[CONSTANTS.FIELDS.username] + " has left.";
+        if (message[CONSTANTS.FIELDS.message]) {
+          output += " (" + message[CONSTANTS.FIELDS.message] + ")";
+        }
         break;
       case CONSTANTS.TYPES.message:
         // TODO: PC: Use some sort of String formatting:
