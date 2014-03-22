@@ -1,6 +1,6 @@
 // TODO: PC: The view logic here could be re-implmented using a MVC/MVW framework.
-define(["jquery", "app/Constants", "app/MessageUtil", "app/InboundMessageRouter", "app/Util"], 
-function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
+define(["jquery", "jquery.canvasResize", "app/Constants", "app/MessageUtil", "app/InboundMessageRouter", "app/Util"], 
+function($, canvasResize, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
 
   var loginFormSelector = "#login";
   var userNameSelector = "#username";
@@ -252,6 +252,7 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
 
   function attachEventHandlers() {
     var self = this;
+
     $(loginFormSelector).submit(function(e) {
       loginHandler.call(self, e);
     });
@@ -280,8 +281,25 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
         return;
       }
 
+      // TODO: PC: Possible to get height/width from this imageFile?
       var imageFile = this.files[0];
       console.log(imageFile);
+
+      // // TODO: PC: Max height/width into configuration.
+      // var maxWidth = 300;
+      // var maxHeight = 225;
+
+      // // NOTE: This plugin handles the use of FileReader and canvas to resize, as well 
+      // // as taking care of the iOS "image squash" bug and EXIF orientation issues.
+      // $.canvasResize(imageFile, {
+      //   width: maxWidth,
+      //   height: maxHeight,
+      //   crop: false,
+      //   quality: 80,
+      //   callback: function(data, width, height) {
+      //     self._sendImage(data);
+      //   }
+      // });
 
       var reader = new FileReader();
       reader.onload = function(readerEvent) {
@@ -303,7 +321,12 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
             // - Android/Chrome: Resizes fine, but orientation wrong.
             // - iOS7 Safari always seems to orient image landscape; SOME portrait images
             // show up fine but wrong orietation; others wrong orientation AND squished.
-            // - Seems to affect higher-resolution images?
+            // - Seems to affect higher-resolution images? (Larger size)
+            // - BUG: http://stackoverflow.com/questions/11929099/html5-canvas-drawimage-ratio-bug-ios
+            // - Orientation likely due to EXIF based orientation rather than modifying image:
+            // https://github.com/TryGhost/Ghost/issues/1688
+            // FIX: https://github.com/gokercebeci/canvasResize
+            // http://stackoverflow.com/questions/12539862/ios6-and-safari-photo-uploading-file-api-canvas-jquery-ajax-uploading-and
             outputChatMessage("W: " + this.width + "; H: " + this.height);
 
             // TODO: PC: Max height/width into configuration.
@@ -324,7 +347,6 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
             canvas.width = width;
 
             outputChatMessage("W: " + width + "; H: " + height);
-
 
             var ctx = canvas.getContext("2d");
             ctx.drawImage(this, 0, 0, width, height);
