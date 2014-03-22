@@ -34,6 +34,7 @@ define(["app/Constants", "app/MessageUtil"], function(CONSTANTS, MessageUtil) {
     this.client.loginFailure(message);
   };
   messageRouter[CONSTANTS.TYPES.message] = outputChatRoomMessage;
+  messageRouter[CONSTANTS.TYPES.image] = outputChatRoomMessage;
   messageRouter[CONSTANTS.TYPES.user_joined] = outputChatRoomMessage;
   messageRouter[CONSTANTS.TYPES.user_left] = outputChatRoomMessage;
 

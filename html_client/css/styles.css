@@ -36,14 +36,30 @@ h1, #login {
   position: absolute;
   bottom: 0;
 }
+#output img {
+  vertical-align: bottom;
+  height: 200px;
+  width: auto;
+}
 
+#image-upload-button {
+  position: absolute;
+  top: 7px;
+  right: 85px;
+  z-index: 10;
+  font-size: 20px;
+}
 #message {
-  display: inline-block;
+  /*display: inline-block;*/
   /*width: calc(100% - 75px);*/
-  box-sizing: border-box;
+  /*box-sizing: border-box;*/
+  padding-right: 35px
 }
 #send-message {
-  display: inline-block;
+  /*display: inline-block;*/
   width: 75px;
-  box-sizing: border-box;
+  /*box-sizing: border-box;*/
+}
+.hidden {
+  display: none;
 }

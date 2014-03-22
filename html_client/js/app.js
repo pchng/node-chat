@@ -9,6 +9,7 @@ requirejs.config({
       "//code.jquery.com/jquery-2.1.0.min",
       "jquery-2.1.0.min",
     ],
+    // TODO: PC: May not even need this, remove if not using Bootflat.
     // NOTE: If define() is not called, or exports is not set, then this is considered 
     // a failure to load the module, and the next fallback path is checked.
     iCheck: [

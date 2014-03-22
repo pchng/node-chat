@@ -9,6 +9,8 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
   var messageSelector = "#message";
   var outputSelector = "#output .bottom";
   var closeSelector = "#close";
+  var imgUploadButton = "#image-upload-button";
+  var imgFileUpload = "#image-upload";
 
   var CHAT_BUFFER_SIZE = 100;
 
@@ -81,6 +83,13 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     var message = {};
     message[CONSTANTS.FIELDS.type] = CONSTANTS.TYPES.login;
     message[CONSTANTS.FIELDS.username] = username;
+    this._sendMessage(message);
+  }
+
+  ChatClient.prototype._sendImage = function(imageData) {
+    var message = {};
+    message[CONSTANTS.FIELDS.type] = CONSTANTS.TYPES.image;
+    message[CONSTANTS.FIELDS.data] = imageData;
     this._sendMessage(message);
   }
 
@@ -206,6 +215,7 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     // TODO: PC: Optional sounds, turn on/off ability.
     // TODO: PC: Use a MessageUtil functions for generating output.
     var output;
+    var imageData;
     var now = new Date();
     var type = message[CONSTANTS.FIELDS.type];
     switch (type) {
@@ -223,12 +233,18 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
         // http://stackoverflow.com/questions/610406/javascript-equivalent-to-printf-string-format
         output = message[CONSTANTS.FIELDS.username] + ": " + message[CONSTANTS.FIELDS.message];
         break;
+      case CONSTANTS.TYPES.image:
+        // TODO: PC: This is hacky; define instead an object that gets passed to the 
+        // output() function.
+        output = message[CONSTANTS.FIELDS.username] + ": ";
+        imageData = message[CONSTANTS.FIELDS.data];
+        break;
       default:
         console.log("Invalid message type for output: %s", messageType);
         break;
     }
     output = Util.getChatTimestamp(now) + output;
-    outputChatMessage(output);
+    outputChatMessage(output, imageData);
   }
 
   // TODO: PC: Below functions are a bit icky...
@@ -241,6 +257,45 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     $(formSelector).submit(function(e) {
       sendChatMessageHandler.call(self, e);
     })
+
+    // TODO: PC: Hide upload image button if not FileReader.
+    // - Refactor into proper module/class.
+    // - Make sure is cross-browser/device compatible.
+    $(imgUploadButton).click(function(e) {
+      e.preventDefault();
+      $(imgFileUpload).trigger("click");
+    })
+    $(imgFileUpload).on("change", function(e) {
+      // TODO: PC: Progress bar/indicator?
+      if (!FileReader) {
+        console.log("FileReader unavailable; cannot upload image.");
+      }
+
+      if (!this.files || 0 == this.files.length) {
+        console.log("No images detected.");
+        return;
+      }
+
+      var imageFile = this.files[0];
+      console.log(imageFile);
+
+      var reader = new FileReader();
+      reader.onload = function(readerEvent) {
+        console.log(readerEvent); // Standard JS Event.
+        var imageSrc = readerEvent.target.result;
+
+        // TODO: PC: Resize client-side but enforce server-side.
+        // TODO: PC: Preview before sending.
+        console.log(imageSrc);
+        self._sendImage(imageSrc);
+      };
+      reader.onerror = function(readerEvent) {
+        console.error(readerEvent);
+        console.error("Error uploading image:" + readerEvent.target.error.code);
+      };
+      reader.readAsDataURL(imageFile);
+    });
+
   }
 
   function loginHandler(e) {
@@ -280,11 +335,20 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     }
   }
 
-  function outputChatMessage(output) {
+  // TODO: PC: Refactor this; should accept an object with optional imageData and other
+  // parameters.
+  // - Allow clicking the image to open in full-screen mode.
+  function outputChatMessage(output, imageData) {
     if (output) {
       var chatOutput = $(outputSelector);
       var span = $(document.createElement("span"));
-      span.text(output + "\n");
+      if (imageData) {
+        // TODO: PC: Make sure we can trust the server at this point.
+        span.text(output);
+        span.append("<img src=" + imageData + " alt=''>\n");
+      } else {
+        span.text(output + "\n");
+      }
       chatOutput.append(span);
       // chatOutput.scrollTop(chatOutput.prop("scrollHeight"));
 
