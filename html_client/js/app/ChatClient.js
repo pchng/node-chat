@@ -240,7 +240,7 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
         imageData = message[CONSTANTS.FIELDS.data];
         break;
       default:
-        console.log("Invalid message type for output: %s", messageType);
+        console.warn("Invalid message type for output: %s", messageType);
         break;
     }
     output = Util.getChatTimestamp(now) + output;
@@ -284,10 +284,35 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
         console.log(readerEvent); // Standard JS Event.
         var imageSrc = readerEvent.target.result;
 
-        // TODO: PC: Resize client-side but enforce server-side.
-        // TODO: PC: Preview before sending.
-        console.log(imageSrc);
-        self._sendImage(imageSrc);
+        // NOTE: Resized client-side but enforced server-side.
+        var tempImage = new Image();
+        tempImage.onload = function() {
+          var ratio = this.width/this.height;
+          var canvas = document.createElement("canvas");
+          if (canvas) {
+            // TODO: PC: Max height/width into configuration.
+            var maxWidth = 300;
+            var maxHeight = 225;
+
+            if (this.width > this.height) {
+              canvas.width = maxWidth;
+              canvas.height = maxWidth * (this.height/this.width);
+            } else {
+              canvas.height = maxHeight;
+              canvas.width = maxHeight * (this.width/this.height);
+            }
+
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(this, 0, 0, canvas.width, canvas.height);
+            imageSrc = canvas.toDataURL("image/jpeg");
+          } else {
+            console.warn("Could not create canvas to resize image; using original.");
+          }
+          // TODO: PC: Preview before sending.
+          console.log(imageSrc);
+          self._sendImage(imageSrc);
+        }
+        tempImage.src = imageSrc;
       };
       reader.onerror = function(readerEvent) {
         console.error(readerEvent);

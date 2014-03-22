@@ -37,9 +37,12 @@ h1, #login {
   bottom: 0;
 }
 #output img {
-  vertical-align: bottom;
   height: 200px;
   width: auto;
+  margin: 3px 0;
+  /*TODO: PC: Make image border/shadows more attractive.*/
+  border: 1px solid #ccc;
+  vertical-align: bottom;
 }
 
 #image-upload-button {
