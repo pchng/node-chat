@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <title>Node.js WebSocket Chat</title>
+    <link rel="stylesheet" href="bootflat/css/site.min.css">
     <link rel="stylesheet" href="css/styles.css">
   </head>
   <body>
@@ -20,7 +21,12 @@
     <pre id="output"><div class="bottom"></div></pre>
 
     <form id="input">
-      <input id="message" type="text"><input id="send-message" type="submit" value="Send">
+      <div class="input-group form-search">
+        <input id="message" class="form-control" type="text">
+        <span class="input-group-btn">
+          <button id="send-message" class="btn-primary btn" type="submit">Send</button>
+        </span>
+      </div>
     </form>
   </div>
 

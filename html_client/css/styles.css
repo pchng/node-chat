@@ -2,6 +2,9 @@
 html {
   font-family: Helvetica, Arial, sans-serif;
 }
+body {
+  position: static;
+}
 h1 {
   font-size: 20px;
 }
@@ -36,7 +39,7 @@ h1, #login {
 
 #message {
   display: inline-block;
-  width: calc(100% - 75px);
+  /*width: calc(100% - 75px);*/
   box-sizing: border-box;
 }
 #send-message {

@@ -101,7 +101,7 @@ var config = {
   ip: process.env.OPENSHIFT_NODEJS_IP || "0.0.0.0",
   port: process.env.OPENSHIFT_NODEJS_PORT || 8080,
   keepAlive: true,
-  keepAliveInterval: 15000,
+  keepAliveInterval: 30000,
 };
 
 // Static HTTP server to serve the HTML/JS client.
