@@ -285,86 +285,21 @@ function($, canvasResize, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
       var imageFile = this.files[0];
       console.log(imageFile);
 
-      // // TODO: PC: Max height/width into configuration.
-      // var maxWidth = 300;
-      // var maxHeight = 225;
+      // TODO: PC: Max height/width into configuration.
+      var maxWidth = 300;
+      var maxHeight = 225;
 
-      // // NOTE: This plugin handles the use of FileReader and canvas to resize, as well 
-      // // as taking care of the iOS "image squash" bug and EXIF orientation issues.
-      // $.canvasResize(imageFile, {
-      //   width: maxWidth,
-      //   height: maxHeight,
-      //   crop: false,
-      //   quality: 80,
-      //   callback: function(data, width, height) {
-      //     self._sendImage(data);
-      //   }
-      // });
-
-      var reader = new FileReader();
-      reader.onload = function(readerEvent) {
-        console.log(readerEvent);
-        var imageSrc = this.result; // readerEvent.target.result;
-
-        // NOTE: Resized client-side but enforced server-side.
-        var tempImage = new Image();
-        tempImage.onload = function() {
-          var canvas = document.createElement("canvas");
-          if (canvas) {
-            // TODO: PC: Image resizing (or upload?) buggy on iOS7.
-            // - Sometimes rotated wrongly.
-            // - Sometimes resized "squished" with black section at bottom.
-            // - Sometimes squished to side with black section on side.
-            // - Orientation wrong AND squished with black on one side/bottom.
-            // - Due to devicePixelRatio on on mobile? Compute height/width
-            // separately and don't pull the value back from canvas property.
-            // - Android/Chrome: Resizes fine, but orientation wrong.
-            // - iOS7 Safari always seems to orient image landscape; SOME portrait images
-            // show up fine but wrong orietation; others wrong orientation AND squished.
-            // - Seems to affect higher-resolution images? (Larger size)
-            // - BUG: http://stackoverflow.com/questions/11929099/html5-canvas-drawimage-ratio-bug-ios
-            // - Orientation likely due to EXIF based orientation rather than modifying image:
-            // https://github.com/TryGhost/Ghost/issues/1688
-            // FIX: https://github.com/gokercebeci/canvasResize
-            // http://stackoverflow.com/questions/12539862/ios6-and-safari-photo-uploading-file-api-canvas-jquery-ajax-uploading-and
-            outputChatMessage("W: " + this.width + "; H: " + this.height);
-
-            // TODO: PC: Max height/width into configuration.
-            var maxWidth = 300;
-            var maxHeight = 225;
-
-            var width, height;
-            if (this.width > this.height) {
-              width = maxWidth;
-              height = maxWidth * (this.height/this.width);
-            } else {
-              height = maxHeight;
-              width = maxHeight * (this.width/this.height);
-            }
-
-            // TODO: PC: Not sure if this intermediate assignment needed.
-            canvas.height = height;
-            canvas.width = width;
-
-            outputChatMessage("W: " + width + "; H: " + height);
-
-            var ctx = canvas.getContext("2d");
-            ctx.drawImage(this, 0, 0, width, height);
-            imageSrc = canvas.toDataURL("image/jpeg");
-          } else {
-            console.warn("Could not create canvas to resize image; using original.");
-          }
-          // TODO: PC: Preview before sending.
-          console.log(imageSrc);
-          self._sendImage(imageSrc);
+      // NOTE: This plugin handles the use of FileReader and canvas to resize, as well 
+      // as taking care of the iOS "image squash" bug and EXIF orientation issues.
+      $.canvasResize(imageFile, {
+        width: maxWidth,
+        height: maxHeight,
+        crop: false,
+        quality: 80,
+        callback: function(data, width, height) {
+          self._sendImage(data);
         }
-        tempImage.src = imageSrc;
-      };
-      reader.onerror = function(readerEvent) {
-        console.error(readerEvent);
-        console.error("Error uploading image:" + readerEvent.target.error.code);
-      };
-      reader.readAsDataURL(imageFile);
+      });
     });
 
   }
