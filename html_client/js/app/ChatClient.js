@@ -11,6 +11,7 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
   var closeSelector = "#close";
   var imgUploadButton = "#image-upload-button";
   var imgFileUpload = "#image-upload";
+  var modalSelector = "#modal";
 
   var CHAT_BUFFER_SIZE = 100;
 
@@ -72,10 +73,11 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
       // TODO: PC: Workaround for iOS/Safari crashing? Seems like the socket isn't ready to send data
       // and requires a small delay to be truly "ready"?
       // http://stackoverflow.com/questions/5574385/websockets-on-ios
-      // window.setTimeout(function() {
-      //   dispatchInboundMessage(JSON.parse(event.data));
-      // }, 0);
-      self._inMessageRouter.handleMessage(MessageUtil.parse(event.data));
+      window.setTimeout($.proxy(function(){
+        var self = this;
+        self._inMessageRouter.handleMessage(MessageUtil.parse(event.data));
+      }, self), 0);
+
     };
   }
 
@@ -207,11 +209,10 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     var usernameInput = $(userNameSelector).val();
     var loginForm = $(loginFormSelector);
     loginForm.find("input").prop("disabled", false);
-    loginForm.find(".status").text("Error: " + message[CONSTANTS.FIELDS.reason]);
+    showModal("Error: " + message[CONSTANTS.FIELDS.reason]);
   }
 
   ChatClient.prototype.outputChatRoomMessage = function(message) {
-    // TODO: PC: Use handlebars or similar to prevent XSS/injection.
     // TODO: PC: Optional sounds, turn on/off ability.
     // TODO: PC: Use a MessageUtil functions for generating output.
     var output;
@@ -257,6 +258,9 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     $(formSelector).submit(function(e) {
       sendChatMessageHandler.call(self, e);
     })
+    $(modalSelector).click(function(e) {
+      $(this).fadeOut();
+    });
 
     // TODO: PC: Hide upload image button if not FileReader.
     // - Refactor into proper module/class.
@@ -281,29 +285,49 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
 
       var reader = new FileReader();
       reader.onload = function(readerEvent) {
-        console.log(readerEvent); // Standard JS Event.
-        var imageSrc = readerEvent.target.result;
+        console.log(readerEvent);
+        var imageSrc = this.result; // readerEvent.target.result;
 
         // NOTE: Resized client-side but enforced server-side.
         var tempImage = new Image();
         tempImage.onload = function() {
-          var ratio = this.width/this.height;
           var canvas = document.createElement("canvas");
           if (canvas) {
+            // TODO: PC: Image resizing (or upload?) buggy on iOS7.
+            // - Sometimes rotated wrongly.
+            // - Sometimes resized "squished" with black section at bottom.
+            // - Sometimes squished to side with black section on side.
+            // - Orientation wrong AND squished with black on one side/bottom.
+            // - Due to devicePixelRatio on on mobile? Compute height/width
+            // separately and don't pull the value back from canvas property.
+            // - Android/Chrome: Resizes fine, but orientation wrong.
+            // - iOS7 Safari always seems to orient image landscape; SOME portrait images
+            // show up fine but wrong orietation; others wrong orientation AND squished.
+            // - Seems to affect higher-resolution images?
+            outputChatMessage("W: " + this.width + "; H: " + this.height);
+
             // TODO: PC: Max height/width into configuration.
             var maxWidth = 300;
             var maxHeight = 225;
 
+            var width, height;
             if (this.width > this.height) {
-              canvas.width = maxWidth;
-              canvas.height = maxWidth * (this.height/this.width);
+              width = maxWidth;
+              height = maxWidth * (this.height/this.width);
             } else {
-              canvas.height = maxHeight;
-              canvas.width = maxHeight * (this.width/this.height);
+              height = maxHeight;
+              width = maxHeight * (this.width/this.height);
             }
 
+            // TODO: PC: Not sure if this intermediate assignment needed.
+            canvas.height = height;
+            canvas.width = width;
+
+            outputChatMessage("W: " + width + "; H: " + height);
+
+
             var ctx = canvas.getContext("2d");
-            ctx.drawImage(this, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(this, 0, 0, width, height);
             imageSrc = canvas.toDataURL("image/jpeg");
           } else {
             console.warn("Could not create canvas to resize image; using original.");
@@ -337,8 +361,10 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     // - If encounter close event, indicate with error message and re-enable form or
     // else gets stuck in disabled state.
     var loginForm = $(loginFormSelector);
+
+    // TODO: PC: iOS7 stays focused after prop disabled; need to defocus.
+
     loginForm.find("input").prop("disabled", true);
-    loginForm.find(".status").text("Logging in...");
 
     this._setupWebSocketConnection(
       function(event) {
@@ -361,7 +387,7 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
   }
 
   // TODO: PC: Refactor this; should accept an object with optional imageData and other
-  // parameters.
+  // parameters; also start using handlebars templating.
   // - Allow clicking the image to open in full-screen mode.
   function outputChatMessage(output, imageData) {
     if (output) {
@@ -370,7 +396,7 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
       if (imageData) {
         // TODO: PC: Make sure we can trust the server at this point.
         span.text(output);
-        span.append("<img src=" + imageData + " alt=''>\n");
+        span.append("<br><img src=" + imageData + " alt=''>\n");
       } else {
         span.text(output + "\n");
       }
@@ -384,6 +410,12 @@ function($, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
         buffer.slice(0, diff).remove();
       }
     }
+  }
+
+  function showModal(message) {
+    var modal = $(modalSelector);
+    modal.find(".alert").text(message);
+    modal.fadeIn();
   }
 
   return ChatClient;

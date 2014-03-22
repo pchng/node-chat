@@ -2,15 +2,13 @@
 html {
   font-family: Helvetica, Arial, sans-serif;
 }
-body {
-  position: static;
-}
 h1 {
   font-size: 20px;
 }
 h1, #login {
   text-align: center; 
 }
+/*TODO: PC: Make the login page look better on mobile.*/
 #login {
   display: none;
   height: 100px;
@@ -37,7 +35,7 @@ h1, #login {
   bottom: 0;
 }
 #output img {
-  height: 200px;
+  max-height: 200px;
   width: auto;
   margin: 3px 0;
   /*TODO: PC: Make image border/shadows more attractive.*/
@@ -65,4 +63,28 @@ h1, #login {
 }
 .hidden {
   display: none;
+}
+
+#modal {
+  display: none;
+  position: absolute;
+  height: 100vh;
+  margin: auto;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.5);
+  text-align: center;
+  z-index: 10;
+}
+#modal .content {
+  position: absolute;
+  height: 1px;
+  margin: auto;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 0 10px;
 }

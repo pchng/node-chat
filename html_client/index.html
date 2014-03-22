@@ -12,10 +12,12 @@
   <h1>WebSocket Chat</h1>
 
   <form id="login">
-    <label for="username">Username: </label>
-    <input id="username" type="text">
-    <input type="submit" value="Login">
-    <p class="status"></p>
+    <div class="input-group">
+      <input id="username" class="form-control" placeholder="Username" type="text">
+      <span class="input-group-btn">
+        <button type="submit" class="btn-primary btn">Login</button>
+      </span>
+    </div>
   </form>
 
   <div id="chat">
@@ -32,6 +34,13 @@
       <div class="hidden"><input id="image-upload" type="file" accept="image/*" capture>
       </div>
     </form>
+  </div>
+
+  <div id="modal">
+    <div class="content">
+      <div class="alert alert-danger"></div>
+      <button class="btn-primary btn">OK</button>
+    </div>
   </div>
 
   <script data-main="js/app" src="js/require.js"></script>
