@@ -209,6 +209,9 @@ function($, canvasResize, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
     var usernameInput = $(userNameSelector).val();
     var loginForm = $(loginFormSelector);
     loginForm.find("input").prop("disabled", false);
+
+    // TODO: PC: Use Bootstrap Modals:
+    // http://getbootstrap.com/javascript/
     showModal("Error: " + message[CONSTANTS.FIELDS.reason]);
   }
 
@@ -271,7 +274,7 @@ function($, canvasResize, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
       $(imgFileUpload).trigger("click");
     })
     $(imgFileUpload).on("change", function(e) {
-      // TODO: PC: Progress bar/indicator?
+      // TODO: PC: Progress bar/indicator when image is uploading.
       if (!FileReader) {
         console.log("FileReader unavailable; cannot upload image.");
       }
