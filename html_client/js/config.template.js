@@ -1,3 +1,3 @@
 define({
-  wsPort: "8088",
+  wsPort: "8080",
 })
