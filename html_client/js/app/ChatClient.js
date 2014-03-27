@@ -75,6 +75,7 @@ function($, canvasResize, CONSTANTS, MessageUtil, InboundMessageRouter, Util) {
       // http://stackoverflow.com/questions/5574385/websockets-on-ios
       window.setTimeout($.proxy(function(){
         var self = this;
+        // TODO: PC: Use events instead.
         self._inMessageRouter.handleMessage(MessageUtil.parse(event.data));
       }, self), 0);
 
