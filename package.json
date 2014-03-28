@@ -1,12 +1,13 @@
 {
   "name": "node-js-websocket-chat",
   "version": "0.0.0",
-  "description": "",
+  "description": "Simple chat server using WebSockets. Live demo at https://chat-stygianabyss.rhcloud.com/",
   "main": "server.js",
   "dependencies": {
     "node-static": "~0.7.3",
     "underscore": "~1.6.0",
-    "ws": "~0.4.31"
+    "ws": "~0.4.31",
+    "underscore.string": "^2.3.3"
   },
   "devDependencies": {},
   "scripts": {

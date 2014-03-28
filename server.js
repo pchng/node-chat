@@ -74,8 +74,7 @@ var http = require("http"),
       chatServer.handleInboundMessage(ws, message);
     });
     ws.on("close", function(closeCode, closeMessage) {
-      var response = chatServer.logOutUser(ws);
-      chatServer.handleOutboundMessage(response);
+      chatServer.logOutUser(ws);
       console.log("WebSocket closed with code %s. Number of connections: %s.", closeCode, wss.clients.length);
     });
     ws.on("pong", function() {
@@ -86,8 +85,7 @@ var http = require("http"),
 
   // TODO: PC: Functionality below needs to be tied to a module; don't let this file get messy.
   function closeConnection(connection, isTimeout) {
-    var response = chatServer.logOutUser(connection, isTimeout);
-    chatServer.handleOutboundMessage(response);
+    chatServer.logOutUser(connection, isTimeout);
     connection.close();
     console.log("Closed connection. Number of connections: %s.", wss.clients.length);
   }
